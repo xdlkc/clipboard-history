@@ -1,5 +1,6 @@
 import AppKit
 import ClipboardCore
+import ImageIO
 
 /// 右侧预览栏:头部小字 + 正文(等宽纯文本,或可缩放的图片)。
 final class PreviewView: NSView {
@@ -13,6 +14,10 @@ final class PreviewView: NSView {
     /// 单项图片缓存:(key, 图片, PNG 字节数)。
     private var cachedImage: (key: String, image: NSImage, bytes: Int)?
     private var shownKey: String?
+
+    /// 读磁盘图片文件在后台进行;选中项变化时取消尚未开始的读取,过期结果直接丢弃。
+    private let fileQueue = DispatchQueue(label: "ClipboardHistory.preview-file", qos: .userInitiated)
+    private var pendingFileLoad: DispatchWorkItem?
 
     /// 按 id 懒加载图片条目的完整 PNG。
     var loadImage: (Int64) -> Data? = { _ in nil }
@@ -105,6 +110,7 @@ final class PreviewView: NSView {
     /// 显示条目;同一条目重复调用不重置滚动位置。
     func show(_ item: HistoryItem?, appName: String?, now: Date) {
         guard let item else {
+            pendingFileLoad?.cancel()
             shownKey = nil
             headerField.attributedStringValue = NSAttributedString()
             showText("")
@@ -112,6 +118,10 @@ final class PreviewView: NSView {
         }
         let key = "\(item.id):\(item.contentHash)"
         let sameItem = key == shownKey
+        if !sameItem {
+            pendingFileLoad?.cancel()
+            pendingFileLoad = nil
+        }
         shownKey = key
 
         switch item.kind {
@@ -126,16 +136,74 @@ final class PreviewView: NSView {
             }
         case .file:
             let paths = PanelFormat.paths(of: item)
-            if PanelFormat.allImageFiles(item), let first = paths.first,
-               let loaded = image(key: "file:\(first)", load: { try? Data(contentsOf: URL(fileURLWithPath: first)) }) {
-                let size = Self.pixelSize(loaded.image)
-                setHeader(PanelFormat.previewHeader(item, appName: appName, now: now, firstImageSize: size))
-                if !sameItem { showImage(loaded.image) }
-            } else {
+            let pathsText = PanelFormat.previewText(paths.joined(separator: "\n")).text
+            guard PanelFormat.allImageFiles(item), let first = paths.first else {
                 setHeader(PanelFormat.previewHeader(item, appName: appName, now: now))
-                if !sameItem { showText(PanelFormat.previewText(paths.joined(separator: "\n")).text) }
+                if !sameItem { showText(pathsText) }
+                return
+            }
+            let cacheKey = "file:\(first)"
+            if let cachedImage, cachedImage.key == cacheKey {
+                setHeader(PanelFormat.previewHeader(item, appName: appName, now: now, firstImageSize: Self.pixelSize(cachedImage.image)))
+                if !sameItem { showImage(cachedImage.image) }
+                return
+            }
+            setHeader(PanelFormat.previewHeader(item, appName: appName, now: now))
+            guard !sameItem else { return }
+            if let thumb = item.thumb.flatMap(NSImage.init(data:)) { showImage(thumb) } else { showText(pathsText) }
+            loadImageFile(atPath: first, cacheKey: cacheKey, forItem: key) { [weak self] image in
+                guard let self else { return }
+                if let image {
+                    self.setHeader(PanelFormat.previewHeader(item, appName: appName, now: now, firstImageSize: Self.pixelSize(image)))
+                    self.showImage(image)
+                } else {
+                    self.showText(pathsText)
+                }
             }
         }
+    }
+
+    /// 面板隐藏时释放图片与文本。
+    func clear() {
+        pendingFileLoad?.cancel()
+        pendingFileLoad = nil
+        cachedImage = nil
+        shownKey = nil
+        headerField.attributedStringValue = NSAttributedString()
+        showText("")
+    }
+
+    /// 后台检查大小并读取图片文件(超过 20MB 或取不到大小则不读),完成后若仍是同一条目才回调。
+    private func loadImageFile(atPath path: String, cacheKey: String, forItem itemKey: String,
+                               completion: @escaping (NSImage?) -> Void) {
+        pendingFileLoad?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            let data = PreviewImageFile.read(atPath: path)
+            let image = data.flatMap(Self.decodeImmediately)
+            DispatchQueue.main.async {
+                guard let self, self.shownKey == itemKey else { return }
+                if let image, let data { self.cachedImage = (cacheKey, image, data.count) }
+                completion(image)
+            }
+        }
+        pendingFileLoad = work
+        fileQueue.async(execute: work)
+    }
+
+    /// 在当前线程完成解码(按 EXIF 方向旋转),长边最多 8192 像素以限制内存。
+    private static func decodeImmediately(_ data: Data) -> NSImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = props[kCGImagePropertyPixelWidth] as? Int,
+              let height = props[kCGImagePropertyPixelHeight] as? Int else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: min(max(width, height), 8192),
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
     }
 
     private func image(key: String, load: () -> Data?) -> (image: NSImage, bytes: Int)? {

@@ -37,6 +37,9 @@ final class PanelController: NSObject {
     private let counterField = NSTextField(labelWithString: "")
     private var mouseMonitor: Any?
     private var renderNow = Date()
+    /// 输入防抖:最后一次输入 50ms 后才过滤;方向键 / 回车 / ESC 等操作前会立即执行待处理的过滤。
+    private static let searchDebounce: TimeInterval = 0.05
+    private var pendingQuery: DispatchWorkItem?
     /// 每次 show/hide 递增,淡出动画结束时据此判断是否已被重新唤出。
     private var visibilityGeneration = 0
 
@@ -51,6 +54,7 @@ final class PanelController: NSObject {
         buildContent()
         preview.loadImage = { [weak store] id in (try? store?.image(id: id)) ?? nil }
         panel.keyEquivalentHandler = { [weak self] event in self?.handleKeyEquivalent(event) ?? false }
+        panel.delegate = self
         NotificationCenter.default.addObserver(self, selector: #selector(storeDidChange),
                                                name: Store.didChangeNotification, object: store)
     }
@@ -89,6 +93,8 @@ final class PanelController: NSObject {
         guard panel.isVisible else { return }
         visibilityGeneration += 1
         let generation = visibilityGeneration
+        pendingQuery?.cancel()
+        pendingQuery = nil
         if let mouseMonitor {
             NSEvent.removeMonitor(mouseMonitor)
             self.mouseMonitor = nil
@@ -100,9 +106,17 @@ final class PanelController: NSObject {
             DispatchQueue.main.async {
                 guard let self, self.visibilityGeneration == generation else { return }
                 self.panel.orderOut(nil)
+                self.releaseContent()
             }
         })
         Log.debug("panel hide")
+    }
+
+    /// 隐藏后释放条目、rowText 缓存与预览内容,下次唤出时重新加载。
+    private func releaseContent() {
+        model = PanelModel()
+        tableView.reloadData()
+        preview.clear()
     }
 
     func toggle() {
@@ -177,6 +191,7 @@ final class PanelController: NSObject {
     }
 
     @objc private func rowClicked() {
+        flushPendingQuery()
         let row = tableView.clickedRow
         guard row >= 0 else { return }
         model.select(row)
@@ -186,6 +201,7 @@ final class PanelController: NSObject {
 
     private func handleKeyEquivalent(_ event: NSEvent) -> Bool {
         guard event.type == .keyDown else { return false }
+        flushPendingQuery()
         let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         switch (flags, event.keyCode) {
@@ -370,6 +386,20 @@ final class PanelController: NSObject {
 
 extension PanelController: NSTextFieldDelegate {
     func controlTextDidChange(_ obj: Notification) {
+        pendingQuery?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.applyQuery() }
+        pendingQuery = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.searchDebounce, execute: work)
+    }
+
+    private func flushPendingQuery() {
+        guard let work = pendingQuery else { return }
+        work.cancel()
+        applyQuery()
+    }
+
+    private func applyQuery() {
+        pendingQuery = nil
         model.setQuery(searchField.stringValue)
         renderNow = Date()
         tableView.reloadData()
@@ -378,6 +408,7 @@ extension PanelController: NSTextFieldDelegate {
     }
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        flushPendingQuery()
         switch commandSelector {
         case #selector(NSResponder.moveUp(_:)):
             moveSelection(by: -1)
@@ -391,6 +422,15 @@ extension PanelController: NSTextFieldDelegate {
             return false
         }
         return true
+    }
+}
+
+// MARK: - 窗口
+
+extension PanelController: NSWindowDelegate {
+    /// ⌘Tab 切换应用、切换桌面等让面板失去 key 时隐藏。
+    func windowDidResignKey(_ notification: Notification) {
+        hide()
     }
 }
 
