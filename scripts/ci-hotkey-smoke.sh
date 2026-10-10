@@ -50,7 +50,7 @@ wait_count() {
 
 # macOS 没有 timeout 命令,用 perl alarm 防止 AppleScript 卡死
 with_timeout() { perl -e 'alarm shift; exec @ARGV' "$@"; }
-se() { with_with_timeout 30 osascript -e "tell application \"System Events\" to $1"; }
+se() { with_timeout 30 osascript -e "tell application \"System Events\" to $1"; }
 hotkey() { se 'key code 8 using {command down, option down}'; }
 panel_on_screen() { "$HELPER" windows "$APP_PID" | awk '$4 == 1064 && $5 == 454' | grep -q .; }
 
