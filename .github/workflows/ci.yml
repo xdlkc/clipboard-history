@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcode-select -p
+          swift --version
+
+      - name: Lint Info.plist
+        run: plutil -lint Info.plist
+
+      # 两种架构分别构建,产物在 .build/<triple>/release/,不依赖 .build/release 软链
+      - name: Build release (arm64)
+        run: swift build -c release --arch arm64
+
+      - name: Build release (x86_64)
+        run: swift build -c release --arch x86_64
+
+      - name: Universal binary (lipo)
+        run: |
+          ARM_BIN="$(swift build -c release --arch arm64 --show-bin-path)/ClipboardHistory"
+          X86_BIN="$(swift build -c release --arch x86_64 --show-bin-path)/ClipboardHistory"
+          echo "arm64:  $ARM_BIN"
+          echo "x86_64: $X86_BIN"
+          mkdir -p dist
+          lipo -create "$ARM_BIN" "$X86_BIN" -output dist/ClipboardHistory
+          lipo -info dist/ClipboardHistory
+          lipo dist/ClipboardHistory -verify_arch arm64 x86_64
+
+      - name: Unit tests
+        run: swift test
+
+      # TODO(PR #5): package.sh 尚不存在。届时在此执行 `SIGN=adhoc ./package.sh`(CI 一律 ad-hoc,不用自签证书),
+      # 并把 dist/*.zip 与 dist/*.dmg 加入下方上传的构建包。
+      - name: "Package (TODO: PR #5)"
+        run: 'echo "TODO(PR #5): SIGN=adhoc ./package.sh"'
+
+      - name: Upload universal binary
+        uses: actions/upload-artifact@v5
+        with:
+          name: ClipboardHistory-universal
+          path: dist/ClipboardHistory
+          if-no-files-found: error
