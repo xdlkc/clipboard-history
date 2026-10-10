@@ -332,12 +332,9 @@ final class PanelController: NSObject {
             pair.spacing = 5
             views.append(pair)
         }
-        let spacer = NSView()
-        spacer.setContentHuggingPriority(.init(1), for: .horizontal)
-        views.append(spacer)
-        views.append(Self.statusLabel(PanelFormat.hotkeyHint))
-
-        let stack = NSStackView(views: views)
+        let stack = NSStackView()
+        views.forEach { stack.addView($0, in: .leading) }
+        stack.addView(Self.statusLabel(PanelFormat.hotkeyHint), in: .trailing)
         stack.orientation = .horizontal
         stack.spacing = 16
         stack.alignment = .centerY
