@@ -2,14 +2,17 @@
 
 原生 macOS 菜单栏剪贴板历史工具(Swift + AppKit,纯 Swift Package Manager,最低 macOS 13)。
 
-> 当前为骨架阶段:菜单栏图标 + 退出菜单,以及可单元测试的模糊匹配 / 列表行文本逻辑。存储、捕获、主面板、粘贴与热键、打包会在后续 PR 中加入。
+> 当前进度:菜单栏常驻,后台捕获剪贴板并写入 SQLite 历史(`~/Library/Application Support/ClipboardHistory/history.db`)。主面板、粘贴与热键、打包会在后续 PR 中加入。
 
 ## 结构
 
-- `Sources/ClipboardCore`:纯逻辑库(不依赖 AppKit),包含 `Fuzzy` 子序列模糊匹配与 `rowText` 列表行文本
-- `Sources/ClipboardHistory`:AppKit 外壳(菜单栏常驻,无 Dock 图标)
-- `Tests/ClipboardCoreTests`:XCTest 单元测试
+- `Sources/ClipboardCore`:纯逻辑库(不依赖 AppKit):`Fuzzy`、`rowText`、`Store`(SQLite)、内容 SHA256
+- `Sources/ClipboardCapture`:剪贴板读取 / 写回与缩略图(依赖 AppKit,不含 UI)
+- `Sources/ClipboardHistory`:AppKit 外壳(菜单栏常驻,无 Dock 图标;`ClipboardMonitor` 0.35s 轮询)
+- `Tests/`:XCTest 单元测试;`scripts/ci-capture-smoke.sh`:CI 中的真实剪贴板捕获冒烟测试(仅在 `CI=true` 时运行,使用临时数据库)
 - `Info.plist`:组装 .app 时使用(`LSUIElement`、`CFBundleIconFile=AppIcon`、版本号)
+
+设置环境变量 `CLIPBOARD_HISTORY_DB=<路径>` 可让应用改用指定的数据库文件,测试时不会碰到真实历史。
 
 ## 构建与测试
 

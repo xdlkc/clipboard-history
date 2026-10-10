@@ -1,11 +1,33 @@
 import AppKit
+import ClipboardCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
+    private var store: Store?
+    private var monitor: ClipboardMonitor?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
+        startCapture()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        monitor?.stop()
+    }
+
+    private func startCapture() {
+        do {
+            let store = try Store(url: Store.resolvedURL())
+            try store.applyRetention()
+            let monitor = ClipboardMonitor(store: store)
+            monitor.start()
+            self.store = store
+            self.monitor = monitor
+            Log.debug("store=\(store.url.path) items=\((try? store.count()) ?? -1)")
+        } catch {
+            Log.debug("store unavailable: \(error)")
+        }
     }
 
     private func setupStatusItem() {

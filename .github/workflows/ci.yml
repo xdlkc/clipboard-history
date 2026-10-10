@@ -45,6 +45,14 @@ jobs:
       - name: Unit tests
         run: swift test
 
+      # 验收第 2 项:真实系统剪贴板 → history.db(文本 kind=0 / PNG kind=1 / 文件 URL kind=2)
+      - name: Capture smoke test (real pasteboard)
+        run: |
+          scripts/ci-capture-smoke.sh "$(swift build -c release --arch arm64 --show-bin-path)/ClipboardHistory"
+          if [ -e "$HOME/Library/Application Support/ClipboardHistory/history.db" ]; then
+            echo "::error::smoke test touched the default history.db"; exit 1
+          fi
+
       # TODO(PR #5): package.sh 尚不存在。届时在此执行 `SIGN=adhoc ./package.sh`(CI 一律 ad-hoc,不用自签证书),
       # 并把 dist/*.zip 与 dist/*.dmg 加入下方上传的构建包。
       - name: "Package (TODO: PR #5)"
@@ -56,3 +64,29 @@ jobs:
           name: ClipboardHistory-universal
           path: dist/ClipboardHistory
           if-no-files-found: error
+
+  # 主人用 macOS 26 SDK 构建,坑 2 / 坑 4 中的 API 在该 SDK 下是编译错误,需单独验证
+  build-macos26-sdk:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select Xcode 26
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
+          if [ -n "$XCODE" ]; then sudo xcode-select -s "$XCODE/Contents/Developer"; fi
+          sw_vers
+          xcode-select -p
+          xcrun --show-sdk-version
+          swift --version
+          case "$(xcrun --show-sdk-version)" in
+            26*) ;;
+            *) echo "::error::macOS SDK is not 26.x"; exit 1 ;;
+          esac
+
+      - name: Build release (arm64)
+        run: swift build -c release --arch arm64
+
+      - name: Unit tests
+        run: swift test
