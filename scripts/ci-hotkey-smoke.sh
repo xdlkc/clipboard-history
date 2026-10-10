@@ -151,8 +151,11 @@ echo "OK cmd-return copies only"
 alive
 
 # ---- 菜单栏 ----
-MENU='menu 1 of menu bar item 1 of menu bar 2 of application process "ClipboardHistory"'
-se 'click menu bar item 1 of menu bar 2 of application process "ClipboardHistory"' >/dev/null
+# 没有主菜单的菜单栏应用里,状态栏图标在该进程的最后一个 menu bar 中
+echo "menu bars of app: $(se 'count menu bars of application process "ClipboardHistory"')"
+STATUS='menu bar item 1 of last menu bar of application process "ClipboardHistory"'
+MENU="menu 1 of $STATUS"
+se "click $STATUS" >/dev/null
 sleep 0.5
 ITEMS="$(se "get name of every menu item of $MENU")"
 echo "menu items: $ITEMS"
@@ -167,7 +170,7 @@ se 'key code 53'
 wait_count "panel hide" 5 || fail "ESC 未关闭菜单打开的面板"
 echo "OK menu items + open panel"
 
-se 'click menu bar item 1 of menu bar 2 of application process "ClipboardHistory"' >/dev/null
+se "click $STATUS" >/dev/null
 sleep 0.5
 se "click menu item \"清空未固定历史…\" of $MENU" >/dev/null
 sleep 1
@@ -178,7 +181,7 @@ REMAIN="$(sqlite3 "$DB" "SELECT group_concat(text) FROM items")"
 [ "$REMAIN" = "PINNED-KEEP" ] || fail "清空后应只剩固定项,实际: $REMAIN"
 echo "OK clear unpinned keeps pinned"
 
-se 'click menu bar item 1 of menu bar 2 of application process "ClipboardHistory"' >/dev/null
+se "click $STATUS" >/dev/null
 sleep 0.5
 se "click menu item \"登录自启\" of $MENU" >/dev/null
 sleep 1
