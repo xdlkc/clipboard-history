@@ -48,7 +48,9 @@ wait_count() {
   return 1
 }
 
-se() { timeout 30 osascript -e "tell application \"System Events\" to $1"; }
+# macOS 没有 timeout 命令,用 perl alarm 防止 AppleScript 卡死
+with_timeout() { perl -e 'alarm shift; exec @ARGV' "$@"; }
+se() { with_with_timeout 30 osascript -e "tell application \"System Events\" to $1"; }
 hotkey() { se 'key code 8 using {command down, option down}'; }
 panel_on_screen() { "$HELPER" windows "$APP_PID" | awk '$4 == 1064 && $5 == 454' | grep -q .; }
 
@@ -101,7 +103,7 @@ defaults write com.apple.TextEdit NSShowAppCentricOpenPanelInsteadOfUntitledFile
 defaults write com.apple.TextEdit RichText -bool false
 open -a TextEdit
 sleep 2
-timeout 30 osascript -e 'tell application "TextEdit" to make new document' -e 'tell application "TextEdit" to activate' >/dev/null
+with_timeout 30 osascript -e 'tell application "TextEdit" to make new document' -e 'tell application "TextEdit" to activate' >/dev/null
 sleep 1.5
 FRONT="$(se 'get name of first application process whose frontmost is true')"
 echo "frontmost before hotkey: $FRONT"
@@ -115,7 +117,7 @@ se 'key code 36'
 wait_count "choose id=[0-9]+ outcome=" 1 || fail "↩ 未选定条目"
 sleep 1.5
 echo "paste outcome: $(grep -E 'choose id=' "$LOG" | tail -1)"
-DOC="$(timeout 30 osascript -e 'tell application "TextEdit" to get text of document 1')"
+DOC="$(with_timeout 30 osascript -e 'tell application "TextEdit" to get text of document 1')"
 echo "TextEdit document: $DOC"
 [ "$(pbpaste)" = "$TOKEN" ] || fail "↩ 后剪贴板不是选中条目"
 case "$DOC" in
@@ -131,7 +133,7 @@ se 'key code 125'
 se 'key code 36 using {command down}'
 wait_count "choose id=[0-9]+ outcome=copiedOnly" 1 || fail "⌘↩ 未按仅复制处理"
 sleep 1
-DOC2="$(timeout 30 osascript -e 'tell application "TextEdit" to get text of document 1')"
+DOC2="$(with_timeout 30 osascript -e 'tell application "TextEdit" to get text of document 1')"
 [ "$(pbpaste)" = "COPY-ONLY-SECOND" ] || fail "⌘↩ 后剪贴板不是第二条: $(pbpaste)"
 [ "$DOC2" = "$DOC" ] || fail "⌘↩ 不应粘贴,但 TextEdit 内容变了"
 echo "OK cmd-return copies only"
