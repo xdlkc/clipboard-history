@@ -119,6 +119,9 @@ textedit_text() { se 'get value of text area 1 of scroll area 1 of window 1 of a
 hotkey
 wait_count "panel show" 3 || fail "TextEdit 前台时 ⌘⌥C 未唤出面板"
 sleep 0.5
+# 列表顺序:固定项 PINNED-KEEP 在前,其后是最新的 TOKEN
+se 'key code 125'
+sleep 0.3
 screencapture -x "$OUT/hotkey-panel-over-textedit.png" || true
 se 'key code 36'
 wait_count "choose id=[0-9]+ outcome=" 1 || fail "↩ 未选定条目"
@@ -136,6 +139,7 @@ screencapture -x "$OUT/textedit-after-paste.png" || true
 # ---- ⌘↩ 仅复制 ----
 hotkey
 wait_count "panel show" 4 || fail "⌘⌥C 未唤出面板(第 4 次)"
+se 'key code 125'
 se 'key code 125'
 se 'key code 36 using {command down}'
 wait_count "choose id=[0-9]+ outcome=copiedOnly" 1 || fail "⌘↩ 未按仅复制处理"
