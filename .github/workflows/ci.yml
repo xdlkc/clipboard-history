@@ -47,8 +47,8 @@ jobs:
 
       # TODO(PR #5): package.sh 尚不存在。届时在此执行 `SIGN=adhoc ./package.sh`(CI 一律 ad-hoc,不用自签证书),
       # 并把 dist/*.zip 与 dist/*.dmg 加入下方上传的构建包。
-      - name: Package (TODO PR #5)
-        run: echo "TODO(PR #5): SIGN=adhoc ./package.sh"
+      - name: "Package (TODO: PR #5)"
+        run: 'echo "TODO(PR #5): SIGN=adhoc ./package.sh"'
 
       - name: Upload universal binary
         uses: actions/upload-artifact@v5
