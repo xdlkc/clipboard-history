@@ -170,6 +170,54 @@ se 'key code 53'
 wait_count "panel hide" 5 || fail "ESC 未关闭菜单打开的面板"
 echo "OK menu items + open panel"
 
+# ---- 焦点交还 + 弹窗期间继续捕获 ----
+# 先在 Finder 前台时唤出一次面板,再切到 TextEdit,然后弹出本应用的确认框(本应用被激活);
+# 关掉弹窗后唤出面板按 ↩,内容应回到最近的其他应用 TextEdit,而不是更早的 Finder。
+wait_frontmost() {
+  for _ in $(seq 1 25); do
+    [ "$(se 'get name of first application process whose frontmost is true' 2>/dev/null)" = "$1" ] && return 0
+    sleep 0.4
+  done
+  return 1
+}
+open -a Finder
+wait_frontmost Finder || fail "Finder 未在前台"
+hotkey
+wait_count "panel show" 6 || fail "Finder 前台时 ⌘⌥C 未唤出面板"
+se 'key code 53'
+wait_count "panel hide" 6 || fail "ESC 未关闭面板(Finder)"
+open -a TextEdit
+wait_frontmost TextEdit || fail "TextEdit 未回到前台"
+
+se "click $STATUS" >/dev/null
+sleep 0.5
+se "click menu item \"清空未固定历史…\" of $MENU" >/dev/null
+sleep 1
+DURING="DURING-ALERT-$RANDOM"
+printf '%s' "$DURING" | pbcopy
+for _ in $(seq 1 15); do
+  [ "$(sqlite3 "$DB" "SELECT COUNT(*) FROM items WHERE text='$DURING'")" = "1" ] && break
+  sleep 0.2
+done
+[ "$(sqlite3 "$DB" "SELECT COUNT(*) FROM items WHERE text='$DURING'")" = "1" ] || fail "确认弹窗打开期间复制的内容未被捕获"
+echo "OK capture continues while modal alert is open"
+se 'click button "取消" of window 1 of application process "ClipboardHistory"' >/dev/null
+sleep 0.5
+echo "frontmost after dialog: $(se 'get name of first application process whose frontmost is true')"
+[ "$(sqlite3 "$DB" "SELECT COUNT(*) FROM items")" -ge 2 ] || fail "取消后不应清空"
+
+BEFORE="$(textedit_text)"
+hotkey
+wait_count "panel show" 7 || fail "弹窗后 ⌘⌥C 未唤出面板"
+sleep 0.3
+se 'key code 36'
+wait_count "choose id=[0-9]+ outcome=" 3 || fail "弹窗后 ↩ 未选定条目"
+sleep 1.5
+AFTER="$(textedit_text)"
+echo "frontmost after paste: $(se 'get name of first application process whose frontmost is true')"
+[ "$AFTER" = "${BEFORE}PINNED-KEEP" ] || fail "弹窗后粘贴未回到 TextEdit: '$AFTER'"
+echo "OK paste after own dialog goes to last external app (TextEdit)"
+
 se "click $STATUS" >/dev/null
 sleep 0.5
 se "click menu item \"清空未固定历史…\" of $MENU" >/dev/null
@@ -216,5 +264,36 @@ else
   echo "login item mark after unregister: '$(login_mark)'"
   echo "OK launch-at-login register / checkmark / unregister"
 fi
+alive
+
+# ---- 热键被占用:提示弹窗 + 菜单项 ⚠️ ----
+kill "$APP_PID" 2>/dev/null || true
+wait "$APP_PID" 2>/dev/null || true
+"$HELPER" hold-hotkey 40 > "$WORK/hold.log" 2>&1 &
+HOLD_PID=$!
+for _ in $(seq 1 25); do grep -q "status=" "$WORK/hold.log" 2>/dev/null && break; sleep 0.2; done
+echo "helper: $(cat "$WORK/hold.log")"
+grep -q "status=0" "$WORK/hold.log" || fail "辅助进程未能占用 ⌘⌥C"
+cp "$LOG" "$OUT/hotkey-app-main.log"
+: > "$LOG"
+CLIPBOARD_HISTORY_DB="$DB" "$BIN" >"$LOG" 2>&1 &
+APP_PID=$!
+wait_count "hotkey ⌘⌥C register failed" 1 || fail "热键被占用时 app 未报告注册失败"
+sleep 1.5
+CONFLICT="$(se 'get value of every static text of window 1 of application process "ClipboardHistory"' || true)"
+echo "hotkey conflict alert: $CONFLICT"
+screencapture -x "$OUT/hotkey-conflict-alert.png" || true
+case "$CONFLICT" in *"不可用"*) ;; *) fail "热键被占用时没有提示弹窗" ;; esac
+se 'click button "好" of window 1 of application process "ClipboardHistory"' >/dev/null
+sleep 0.5
+se "click $STATUS" >/dev/null
+sleep 0.5
+FIRST="$(se "get name of menu item 1 of $MENU")"
+se 'key code 53' >/dev/null
+echo "menu item 1: $FIRST"
+case "$FIRST" in *"⚠️"*) ;; *) fail "热键被占用时菜单项未标出 ⚠️" ;; esac
+kill "$HOLD_PID" 2>/dev/null || true
+echo "OK hotkey conflict notice (alert + menu ⚠️)"
+
 alive
 echo "hotkey/paste/menu smoke passed"

@@ -26,6 +26,19 @@ public enum StatusMenu {
     /// 系统设置 › 隐私与安全性 › 辅助功能
     public static let accessibilitySettingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
 
+    // MARK: - 热键
+
+    /// 「打开面板」菜单项标题:热键注册失败(被其他应用占用)时标出 ⚠️。
+    public static func openPanelTitle(hotkey: HotkeyConfig, registered: Bool) -> String {
+        registered ? Item.openPanel.title : "\(Item.openPanel.title)(⚠️ \(hotkey.displayString) 不可用)"
+    }
+
+    public static func hotkeyUnavailableAlert(_ hotkey: HotkeyConfig) -> AlertText {
+        AlertText(message: "全局快捷键 \(hotkey.displayString) 不可用",
+                  informative: "这个快捷键可能已被其他应用占用。请在占用它的应用里改掉该快捷键后重新打开 ClipboardHistory;在此之前可以从菜单栏图标「打开面板」。",
+                  buttons: ["好"])
+    }
+
     // MARK: - 登录自启
 
     /// 对应 `SMAppService.Status`。

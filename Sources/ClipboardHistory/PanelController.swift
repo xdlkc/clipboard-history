@@ -21,8 +21,6 @@ final class PanelController: NSObject {
     /// 用户选定条目(面板已先隐藏)。写剪贴板与模拟粘贴由调用方负责。
     var onChoose: ((HistoryItem, ChooseMode) -> Void)?
     var isAccessibilityTrusted: () -> Bool = Keyboard.isAccessibilityTrusted
-    /// 唤出面板时的前台应用,粘贴前若本应用被激活需把焦点还给它。
-    private(set) var previousApp: NSRunningApplication?
 
     private let store: Store
     private var model = PanelModel()
@@ -61,8 +59,6 @@ final class PanelController: NSObject {
     func show() {
         guard !panel.isVisible else { return }
         isHiding = false
-        let frontmost = NSWorkspace.shared.frontmostApplication
-        previousApp = frontmost?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? previousApp : frontmost
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         if let screen {
