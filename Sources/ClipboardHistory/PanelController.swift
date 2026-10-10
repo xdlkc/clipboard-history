@@ -16,16 +16,13 @@ final class KeyPanel: NSPanel {
 
 /// Alfred 式主面板:搜索框 + 列表 + 右侧预览 + 底部状态栏。
 final class PanelController: NSObject {
-    enum ChooseMode {
-        /// ↩ / 点击:写剪贴板后粘贴到前台应用
-        case paste
-        /// ⌘↩:仅写剪贴板
-        case copyOnly
-    }
+    typealias ChooseMode = PasteCoordinator.Mode
 
-    /// 用户选定条目。写剪贴板与模拟粘贴由调用方负责。
+    /// 用户选定条目(面板已先隐藏)。写剪贴板与模拟粘贴由调用方负责。
     var onChoose: ((HistoryItem, ChooseMode) -> Void)?
-    var isAccessibilityTrusted: () -> Bool = { AXIsProcessTrusted() }
+    var isAccessibilityTrusted: () -> Bool = Keyboard.isAccessibilityTrusted
+    /// 唤出面板时的前台应用,粘贴前若本应用被激活需把焦点还给它。
+    private(set) var previousApp: NSRunningApplication?
 
     private let store: Store
     private var model = PanelModel()
@@ -37,10 +34,8 @@ final class PanelController: NSObject {
     private let counterField = NSTextField(labelWithString: "")
     private var mouseMonitor: Any?
     private var renderNow = Date()
-    /// 每次 show/hide 递增,淡出动画结束时据此判断是否已被重新唤出。
-    private var visibilityGeneration = 0
 
-    var isVisible: Bool { panel.isVisible && panel.alphaValue > 0 }
+    var isVisible: Bool { panel.isVisible }
 
     init(store: Store) {
         self.store = store
@@ -58,7 +53,9 @@ final class PanelController: NSObject {
     // MARK: - 显示 / 隐藏
 
     func show() {
-        visibilityGeneration += 1
+        guard !panel.isVisible else { return }
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        previousApp = frontmost?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? previousApp : frontmost
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         if let screen {
@@ -85,23 +82,14 @@ final class PanelController: NSObject {
         Log.debug("panel show frame=\(NSStringFromRect(panel.frame)) rows=\(model.rows.count)")
     }
 
+    /// 立即隐藏(不做淡出):选定条目后 120ms 就要模拟 ⌘V,面板必须先交出 key 窗口。
     func hide() {
         guard panel.isVisible else { return }
-        visibilityGeneration += 1
-        let generation = visibilityGeneration
         if let mouseMonitor {
             NSEvent.removeMonitor(mouseMonitor)
             self.mouseMonitor = nil
         }
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.15
-            panel.animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            DispatchQueue.main.async {
-                guard let self, self.visibilityGeneration == generation else { return }
-                self.panel.orderOut(nil)
-            }
-        })
+        panel.orderOut(nil)
         Log.debug("panel hide")
     }
 
@@ -152,6 +140,7 @@ final class PanelController: NSObject {
     private func choose(_ mode: ChooseMode) {
         guard let item = model.selectedRow?.item else { return }
         Log.debug("panel choose id=\(item.id) mode=\(mode)")
+        hide()
         onChoose?(item, mode)
     }
 

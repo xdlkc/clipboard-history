@@ -61,12 +61,20 @@ jobs:
             echo "::error::smoke test touched the default history.db"; exit 1
           fi
 
-      - name: Upload panel screenshots
+      # ⌘⌥C 唤出/隐藏、ESC、↩ 粘贴到 TextEdit、⌘↩ 仅复制、菜单栏各项,临时数据库
+      - name: Hotkey / paste / menu smoke test
+        run: |
+          scripts/ci-hotkey-smoke.sh "$(swift build -c release --arch arm64 --show-bin-path)/ClipboardHistory" ci-artifacts/hotkey
+          if [ -e "$HOME/Library/Application Support/ClipboardHistory/history.db" ]; then
+            echo "::error::smoke test touched the default history.db"; exit 1
+          fi
+
+      - name: Upload UI smoke screenshots
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: panel-smoke
-          path: ci-artifacts/panel
+          name: ui-smoke
+          path: ci-artifacts
           if-no-files-found: warn
 
       # TODO(PR #5): package.sh 尚不存在。届时在此执行 `SIGN=adhoc ./package.sh`(CI 一律 ad-hoc,不用自签证书),
