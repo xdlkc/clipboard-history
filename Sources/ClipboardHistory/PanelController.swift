@@ -332,15 +332,17 @@ final class PanelController: NSObject {
             pair.spacing = 5
             views.append(pair)
         }
-        let stack = NSStackView()
-        views.forEach { stack.addView($0, in: .leading) }
-        stack.addView(Self.statusLabel(PanelFormat.hotkeyHint), in: .trailing)
+        let hotkey = Self.statusLabel(PanelFormat.hotkeyHint)
+        hotkey.sizeToFit()
+        hotkey.frame.origin = NSPoint(x: width - 18 - hotkey.frame.width, y: ((31 - hotkey.frame.height) / 2).rounded())
+        bar.addSubview(hotkey)
+
+        // 计数文字会变长,左侧一组占满热键提示之前的全部宽度,内容靠左排列
+        let stack = NSStackView(views: views)
         stack.orientation = .horizontal
         stack.spacing = 16
         stack.alignment = .centerY
-        stack.edgeInsets = NSEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)
-        stack.frame = NSRect(x: 0, y: 0, width: width, height: 31)
-        stack.autoresizingMask = [.width]
+        stack.frame = NSRect(x: 18, y: 0, width: hotkey.frame.minX - 16 - 18, height: 31)
         bar.addSubview(stack)
         return bar
     }
