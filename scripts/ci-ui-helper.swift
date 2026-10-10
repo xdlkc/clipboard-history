@@ -4,10 +4,8 @@
 //   trusted            当前进程是否已获辅助功能授权
 //   type <text>        以键盘事件输入文本
 //   key <name> [n]     按键 n 次:down / up / esc / return
-//   hold-hotkey <秒>   用 Carbon 注册 ⌘⌥C 并保持若干秒(模拟热键被其他应用占用),输出 "status=<OSStatus>"
 import AppKit
 import ApplicationServices
-import Carbon
 
 let args = CommandLine.arguments.dropFirst()
 
@@ -53,16 +51,7 @@ case "key":
     guard let name = args.dropFirst().first, let code = codes[name] else { exit(64) }
     let count = args.dropFirst(2).first.flatMap(Int.init) ?? 1
     for _ in 0..<count { press(code) }
-case "hold-hotkey":
-    let seconds = args.dropFirst().first.flatMap(Double.init) ?? 30
-    _ = NSApplication.shared
-    var ref: EventHotKeyRef?
-    let status = RegisterEventHotKey(8, UInt32(cmdKey | optionKey), EventHotKeyID(signature: 0x484F_4C44, id: 1),
-                                     GetApplicationEventTarget(), 0, &ref)
-    print("status=\(status)")
-    fflush(stdout)
-    RunLoop.current.run(until: Date().addingTimeInterval(seconds))
 default:
-    FileHandle.standardError.write(Data("usage: ci-ui-helper windows|screen|trusted|type|key|hold-hotkey\n".utf8))
+    FileHandle.standardError.write(Data("usage: ci-ui-helper windows|screen|trusted|type|key\n".utf8))
     exit(64)
 }

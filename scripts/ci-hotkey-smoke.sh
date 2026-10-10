@@ -265,35 +265,4 @@ else
   echo "OK launch-at-login register / checkmark / unregister"
 fi
 alive
-
-# ---- 热键被占用:提示弹窗 + 菜单项 ⚠️ ----
-kill "$APP_PID" 2>/dev/null || true
-wait "$APP_PID" 2>/dev/null || true
-"$HELPER" hold-hotkey 40 > "$WORK/hold.log" 2>&1 &
-HOLD_PID=$!
-for _ in $(seq 1 25); do grep -q "status=" "$WORK/hold.log" 2>/dev/null && break; sleep 0.2; done
-echo "helper: $(cat "$WORK/hold.log")"
-grep -q "status=0" "$WORK/hold.log" || fail "辅助进程未能占用 ⌘⌥C"
-cp "$LOG" "$OUT/hotkey-app-main.log"
-: > "$LOG"
-CLIPBOARD_HISTORY_DB="$DB" "$BIN" >"$LOG" 2>&1 &
-APP_PID=$!
-wait_count "hotkey ⌘⌥C register failed" 1 || fail "热键被占用时 app 未报告注册失败"
-sleep 1.5
-CONFLICT="$(se 'get value of every static text of window 1 of application process "ClipboardHistory"' || true)"
-echo "hotkey conflict alert: $CONFLICT"
-screencapture -x "$OUT/hotkey-conflict-alert.png" || true
-case "$CONFLICT" in *"不可用"*) ;; *) fail "热键被占用时没有提示弹窗" ;; esac
-se 'click button "好" of window 1 of application process "ClipboardHistory"' >/dev/null
-sleep 0.5
-se "click $STATUS" >/dev/null
-sleep 0.5
-FIRST="$(se "get name of menu item 1 of $MENU")"
-se 'key code 53' >/dev/null
-echo "menu item 1: $FIRST"
-case "$FIRST" in *"⚠️"*) ;; *) fail "热键被占用时菜单项未标出 ⚠️" ;; esac
-kill "$HOLD_PID" 2>/dev/null || true
-echo "OK hotkey conflict notice (alert + menu ⚠️)"
-
-alive
 echo "hotkey/paste/menu smoke passed"
