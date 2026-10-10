@@ -21,10 +21,8 @@ final class ClipboardMonitor {
         guard timer == nil else { return }
         lastChangeCount = pasteboard.changeCount
         let timer = Timer(timeInterval: Self.pollInterval, repeats: true) { [weak self] _ in self?.poll() }
-        // 弹窗 runModal(modalPanel)和菜单展开(eventTracking)期间也要继续捕获
-        for mode in [RunLoop.Mode.common, .modalPanel, .eventTracking] {
-            RunLoop.main.add(timer, forMode: mode)
-        }
+        // .common 包含 modalPanel 与 eventTracking:弹窗 runModal 和菜单展开期间也会继续捕获
+        RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
     }
 

@@ -78,10 +78,8 @@ rm -f key.pem cert.p12
 
 ## CI
 
-GitHub Actions(macOS 运行器)在每次 push 与 PR 上运行。
+GitHub Actions(macOS 运行器)只在 PR(pull_request)和推送到 main 时运行;只改了 `*.md`、`docs/`、`design/`、`packaging/*.txt` 时跳过。同一分支有新提交时,会取消还在跑的旧运行。
 
-- 两架构分别构建并 `lipo` 合成通用二进制,单元测试,全部开启 `-warnings-as-errors`。
-- 剪贴板捕获、面板、热键 / 粘贴 / 菜单冒烟测试。
-- `SIGN=adhoc ./package.sh`,并校验签名、zip、dmg 与 `lipo -info`。
-- 另有一个 macOS 26 SDK 任务做构建、测试和打包。
+- macOS 15 任务(完整):两架构分别构建并 `lipo` 合成通用二进制、单元测试(全部开启 `-warnings-as-errors`)、剪贴板捕获 / 面板 / 热键 / 粘贴 / 菜单冒烟测试、`SIGN=adhoc ./package.sh` 并校验签名、zip、dmg 与 `lipo -info`。
+- macOS 26 SDK 任务(精简):`swift build -c release --arch arm64` 与 `swift test`。
 - 构建包:zip + dmg、图标预览、冒烟截图、通用二进制。
