@@ -181,19 +181,40 @@ REMAIN="$(sqlite3 "$DB" "SELECT group_concat(text) FROM items")"
 [ "$REMAIN" = "PINNED-KEEP" ] || fail "清空后应只剩固定项,实际: $REMAIN"
 echo "OK clear unpinned keeps pinned"
 
-se "click $STATUS" >/dev/null
-sleep 0.5
-se "click menu item \"登录自启\" of $MENU" >/dev/null
-sleep 1
-if wait_count "launch at login failed" 1; then
+# 登录自启:注册成功则检查勾选并再次点击注销;失败则检查提示里提到 /Applications
+login_mark() {
+  se "click $STATUS" >/dev/null
+  sleep 0.5
+  local mark
+  mark="$(se "get value of attribute \"AXMenuItemMarkChar\" of menu item \"登录自启\" of $MENU" 2>/dev/null || true)"
+  se 'key code 53' >/dev/null
+  sleep 0.3
+  echo "$mark"
+}
+click_login_item() {
+  se "click $STATUS" >/dev/null
+  sleep 0.5
+  se "click menu item \"登录自启\" of $MENU" >/dev/null
+  sleep 1
+}
+echo "login item mark before: '$(login_mark)'"
+click_login_item
+if [ "$(count_log 'launch at login failed')" -ge 1 ]; then
   ALERT="$(se 'get value of every static text of window 1 of application process "ClipboardHistory"' || true)"
   echo "login item alert: $ALERT"
   screencapture -x "$OUT/menu-login-item-alert.png" || true
   case "$ALERT" in *"/Applications"*) ;; *) fail "登录自启失败提示未提到 /Applications" ;; esac
   se 'click button "好" of window 1 of application process "ClipboardHistory"' >/dev/null
-  echo "OK launch-at-login failure alert (bare binary is not an installed app)"
+  echo "OK launch-at-login failure alert"
 else
-  echo "launch at login: $(grep -E 'launch at login' "$LOG" | tail -1)"
+  echo "launch at login: $(grep -E 'launch at login register=true' "$LOG" | tail -1)"
+  MARK="$(login_mark)"
+  echo "login item mark after register: '$MARK'"
+  [ "$MARK" = "✓" ] || fail "登录自启已启用但菜单未打勾"
+  click_login_item
+  grep -qE "launch at login register=false" "$LOG" || fail "再次点击未注销登录自启"
+  echo "login item mark after unregister: '$(login_mark)'"
+  echo "OK launch-at-login register / checkmark / unregister"
 fi
 alive
 echo "hotkey/paste/menu smoke passed"
