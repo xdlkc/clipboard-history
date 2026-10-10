@@ -42,6 +42,8 @@ final class PanelController: NSObject {
     private var pendingQuery: DispatchWorkItem?
     /// 每次 show/hide 递增,淡出动画结束时据此判断是否已被重新唤出。
     private var visibilityGeneration = 0
+    /// hide() 调用后到下次 show() 之前为 true;orderOut 引发的 windowDidResignKey 不再重复隐藏。
+    private var isHiding = false
 
     var isVisible: Bool { panel.isVisible && panel.alphaValue > 0 }
 
@@ -63,6 +65,7 @@ final class PanelController: NSObject {
 
     func show() {
         visibilityGeneration += 1
+        isHiding = false
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         if let screen {
@@ -90,7 +93,8 @@ final class PanelController: NSObject {
     }
 
     func hide() {
-        guard panel.isVisible else { return }
+        guard panel.isVisible, !isHiding else { return }
+        isHiding = true
         visibilityGeneration += 1
         let generation = visibilityGeneration
         pendingQuery?.cancel()
