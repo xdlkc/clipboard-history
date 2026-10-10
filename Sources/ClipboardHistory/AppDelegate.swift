@@ -18,7 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startCapture() {
         do {
-            let store = try Store()
+            let store = try Store(url: Store.resolvedURL())
             try store.applyRetention()
             let monitor = ClipboardMonitor(store: store)
             monitor.start()

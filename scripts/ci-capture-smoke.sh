@@ -1,11 +1,17 @@
 #!/bin/bash
 # 验收第 2 项:启动应用,通过真实系统剪贴板放入文本 / PNG / 文件 URL,检查 history.db 中的记录。
 # 用法: scripts/ci-capture-smoke.sh <ClipboardHistory 可执行文件>
+# 只在 CI 中运行:脚本会结束正在运行的 ClipboardHistory 并改动系统剪贴板。数据库始终是 mktemp 下的临时库。
 set -euo pipefail
 
+if [ "${CI:-}" != "true" ]; then
+  echo "拒绝运行:本脚本只用于 CI(需要 CI=true)。它会退出正在运行的 ClipboardHistory 并覆盖系统剪贴板。" >&2
+  exit 2
+fi
+
 BIN="${1:?usage: $0 <ClipboardHistory binary>}"
-DB="$HOME/Library/Application Support/ClipboardHistory/history.db"
 WORK="$(mktemp -d)"
+DB="$WORK/history.db"
 LOG="$WORK/app.log"
 APP_PID=""
 
@@ -26,9 +32,8 @@ fail() {
 
 # 旧实例必须先退出(坑 7)
 pkill -x ClipboardHistory 2>/dev/null || true
-rm -f "$DB" "$DB-wal" "$DB-shm"
 
-"$BIN" >"$LOG" 2>&1 &
+CLIPBOARD_HISTORY_DB="$DB" "$BIN" >"$LOG" 2>&1 &
 APP_PID=$!
 
 for _ in $(seq 1 50); do
@@ -37,6 +42,7 @@ for _ in $(seq 1 50); do
 done
 [ -f "$DB" ] || fail "history.db 未创建"
 kill -0 "$APP_PID" 2>/dev/null || fail "进程已退出"
+grep -qF "store=$DB " "$LOG" || fail "app 未使用临时数据库 $DB"
 
 # 等待 kind 为 $1 且满足条件 $2 的记录出现
 wait_row() {

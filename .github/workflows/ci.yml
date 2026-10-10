@@ -47,7 +47,11 @@ jobs:
 
       # 验收第 2 项:真实系统剪贴板 → history.db(文本 kind=0 / PNG kind=1 / 文件 URL kind=2)
       - name: Capture smoke test (real pasteboard)
-        run: scripts/ci-capture-smoke.sh "$(swift build -c release --arch arm64 --show-bin-path)/ClipboardHistory"
+        run: |
+          scripts/ci-capture-smoke.sh "$(swift build -c release --arch arm64 --show-bin-path)/ClipboardHistory"
+          if [ -e "$HOME/Library/Application Support/ClipboardHistory/history.db" ]; then
+            echo "::error::smoke test touched the default history.db"; exit 1
+          fi
 
       # TODO(PR #5): package.sh 尚不存在。届时在此执行 `SIGN=adhoc ./package.sh`(CI 一律 ad-hoc,不用自签证书),
       # 并把 dist/*.zip 与 dist/*.dmg 加入下方上传的构建包。

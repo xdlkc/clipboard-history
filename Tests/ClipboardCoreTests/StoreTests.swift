@@ -41,6 +41,12 @@ final class StoreTests: XCTestCase {
                       Store.defaultURL.path)
     }
 
+    func testResolvedURLUsesEnvironmentOverride() {
+        XCTAssertEqual(Store.resolvedURL(environment: [:]), Store.defaultURL)
+        XCTAssertEqual(Store.resolvedURL(environment: ["CLIPBOARD_HISTORY_DB": ""]), Store.defaultURL)
+        XCTAssertEqual(Store.resolvedURL(environment: ["CLIPBOARD_HISTORY_DB": "/tmp/x/h.db"]).path, "/tmp/x/h.db")
+    }
+
     func testCreatesDirectoryAndUsesWALAndBusyTimeout() throws {
         let store = try makeStore()
         XCTAssertTrue(FileManager.default.fileExists(atPath: store.url.path))

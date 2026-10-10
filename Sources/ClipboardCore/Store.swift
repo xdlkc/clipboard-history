@@ -20,6 +20,17 @@ public final class Store {
             .appendingPathComponent("history.db")
     }
 
+    /// 测试用:设置后数据库改用该路径,不碰真实历史。
+    public static let databasePathEnvironmentKey = "CLIPBOARD_HISTORY_DB"
+
+    /// 环境变量 `CLIPBOARD_HISTORY_DB` 非空时用它,否则用 `defaultURL`。
+    public static func resolvedURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
+        if let path = environment[databasePathEnvironmentKey], !path.isEmpty {
+            return URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+        }
+        return defaultURL
+    }
+
     /// 列表查询的列,只取 thumb,不取 image。
     static let listColumns = ["id", "kind", "text", "thumb", "app", "created_at", "pinned", "content_hash"]
     static let listOrder = "ORDER BY pinned DESC, created_at DESC, id DESC"
