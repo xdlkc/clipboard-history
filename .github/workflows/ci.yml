@@ -37,10 +37,10 @@ jobs:
           X86_BIN="$(swift build -c release --arch x86_64 --show-bin-path)/ClipboardHistory"
           echo "arm64:  $ARM_BIN"
           echo "x86_64: $X86_BIN"
-          mkdir -p dist
-          lipo -create "$ARM_BIN" "$X86_BIN" -output dist/ClipboardHistory
-          lipo -info dist/ClipboardHistory
-          lipo dist/ClipboardHistory -verify_arch arm64 x86_64
+          mkdir -p universal
+          lipo -create "$ARM_BIN" "$X86_BIN" -output universal/ClipboardHistory
+          lipo -info universal/ClipboardHistory
+          lipo universal/ClipboardHistory -verify_arch arm64 x86_64
 
       - name: Unit tests
         run: swift test -Xswiftc -warnings-as-errors
@@ -69,6 +69,36 @@ jobs:
             echo "::error::smoke test touched the default history.db"; exit 1
           fi
 
+      # 分发包一律 ad-hoc 签名,CI 中不创建证书
+      - name: Package (SIGN=adhoc ./package.sh)
+        env:
+          SWIFT_BUILD_FLAGS: -Xswiftc -warnings-as-errors
+        run: SIGN=adhoc ./package.sh
+
+      # 验收 6(签名、zip 解压后再校验、DMG 内容)/ 7(lipo -info),并启动一次打包后的 app
+      - name: Verify package
+        run: |
+          scripts/ci-verify-package.sh ci-artifacts/package
+          if [ -e "$HOME/Library/Application Support/ClipboardHistory/history.db" ]; then
+            echo "::error::package launch touched the default history.db"; exit 1
+          fi
+
+      - name: Upload package (zip + dmg)
+        uses: actions/upload-artifact@v5
+        with:
+          name: ClipboardHistory-package
+          path: |
+            dist/*.zip
+            dist/*.dmg
+          if-no-files-found: error
+
+      - name: Upload icon preview
+        uses: actions/upload-artifact@v5
+        with:
+          name: app-icon-preview
+          path: build/AppIcon.iconset
+          if-no-files-found: error
+
       - name: Upload UI smoke screenshots
         if: always()
         uses: actions/upload-artifact@v5
@@ -77,16 +107,11 @@ jobs:
           path: ci-artifacts
           if-no-files-found: warn
 
-      # TODO(PR #5): package.sh 尚不存在。届时在此执行 `SIGN=adhoc ./package.sh`(CI 一律 ad-hoc,不用自签证书),
-      # 并把 dist/*.zip 与 dist/*.dmg 加入下方上传的构建包。
-      - name: "Package (TODO: PR #5)"
-        run: 'echo "TODO(PR #5): SIGN=adhoc ./package.sh"'
-
       - name: Upload universal binary
         uses: actions/upload-artifact@v5
         with:
           name: ClipboardHistory-universal
-          path: dist/ClipboardHistory
+          path: universal/ClipboardHistory
           if-no-files-found: error
 
   # 主人用 macOS 26 SDK 构建,坑 2 / 坑 4 中的 API 在该 SDK 下是编译错误,需单独验证
@@ -114,3 +139,11 @@ jobs:
 
       - name: Unit tests
         run: swift test -Xswiftc -warnings-as-errors
+
+      - name: Package (SIGN=adhoc ./package.sh)
+        env:
+          SWIFT_BUILD_FLAGS: -Xswiftc -warnings-as-errors
+        run: SIGN=adhoc ./package.sh
+
+      - name: Verify package
+        run: scripts/ci-verify-package.sh ci-artifacts/package

@@ -34,6 +34,17 @@ final class StatusMenuTests: XCTestCase {
         XCTAssertEqual(StatusMenu.loginItemFailedAlert(register: false, error: "").message, "无法关闭登录自启")
     }
 
+    func testHotkeyUnavailableNotice() {
+        let hotkey = HotkeyConfig.default
+        XCTAssertEqual(StatusMenu.openPanelTitle(hotkey: hotkey, registered: true), "打开面板")
+        XCTAssertEqual(StatusMenu.openPanelTitle(hotkey: hotkey, registered: false), "打开面板(⚠️ ⌘⌥C 不可用)")
+        let alert = StatusMenu.hotkeyUnavailableAlert(hotkey)
+        XCTAssertEqual(alert.message, "全局快捷键 ⌘⌥C 不可用")
+        XCTAssertTrue(alert.informative.contains("其他应用占用"))
+        XCTAssertTrue(alert.informative.contains("打开面板"))
+        XCTAssertEqual(alert.buttons, ["好"])
+    }
+
     func testClearAndAccessibilityAlerts() {
         XCTAssertTrue(StatusMenu.clearUnpinnedAlert.informative.contains("固定的条目会保留"))
         XCTAssertEqual(StatusMenu.clearUnpinnedAlert.buttons, ["清空", "取消"])
