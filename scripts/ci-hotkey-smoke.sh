@@ -22,7 +22,7 @@ mkdir -p "$OUT"
 
 cleanup() {
   [ -n "$APP_PID" ] && kill "$APP_PID" 2>/dev/null || true
-  osascript -e 'tell application "TextEdit" to quit saving no' >/dev/null 2>&1 || true
+  pkill -x TextEdit 2>/dev/null || true
   rm -rf "$WORK"
 }
 trap cleanup EXIT
@@ -34,6 +34,8 @@ fail() {
   cat "$LOG" >&2 || true
   exit 1
 }
+
+trap 'fail "命令失败或超时: $BASH_COMMAND"' ERR
 
 alive() { kill -0 "$APP_PID" 2>/dev/null || fail "进程已退出(崩溃?)"; }
 
@@ -99,15 +101,20 @@ alive
 echo "OK esc hides panel"
 
 # ---- ↩ 粘贴到 TextEdit ----
-defaults write com.apple.TextEdit NSShowAppCentricOpenPanelInsteadOfUntitledFile -bool false
-defaults write com.apple.TextEdit RichText -bool false
-open -a TextEdit
-sleep 2
-with_timeout 30 osascript -e 'tell application "TextEdit" to make new document' -e 'tell application "TextEdit" to activate' >/dev/null
-sleep 1.5
+# 运行器只预授权了 System Events 的自动化;直接向 TextEdit 发 Apple Event 会弹授权框卡住,
+# 所以用 open 打开文档,用 System Events 的辅助功能接口读取文本。
+TARGET="$WORK/paste-target.txt"
+: > "$TARGET"
+open -a TextEdit "$TARGET"
+for _ in $(seq 1 25); do
+  [ "$(se 'get name of first application process whose frontmost is true' 2>/dev/null)" = "TextEdit" ] && break
+  sleep 0.4
+done
+sleep 1
 FRONT="$(se 'get name of first application process whose frontmost is true')"
 echo "frontmost before hotkey: $FRONT"
 [ "$FRONT" = "TextEdit" ] || fail "TextEdit 未在前台"
+textedit_text() { se 'get value of text area 1 of scroll area 1 of window 1 of application process "TextEdit"'; }
 
 hotkey
 wait_count "panel show" 3 || fail "TextEdit 前台时 ⌘⌥C 未唤出面板"
@@ -117,7 +124,7 @@ se 'key code 36'
 wait_count "choose id=[0-9]+ outcome=" 1 || fail "↩ 未选定条目"
 sleep 1.5
 echo "paste outcome: $(grep -E 'choose id=' "$LOG" | tail -1)"
-DOC="$(with_timeout 30 osascript -e 'tell application "TextEdit" to get text of document 1')"
+DOC="$(textedit_text)"
 echo "TextEdit document: $DOC"
 [ "$(pbpaste)" = "$TOKEN" ] || fail "↩ 后剪贴板不是选中条目"
 case "$DOC" in
@@ -133,7 +140,7 @@ se 'key code 125'
 se 'key code 36 using {command down}'
 wait_count "choose id=[0-9]+ outcome=copiedOnly" 1 || fail "⌘↩ 未按仅复制处理"
 sleep 1
-DOC2="$(with_timeout 30 osascript -e 'tell application "TextEdit" to get text of document 1')"
+DOC2="$(textedit_text)"
 [ "$(pbpaste)" = "COPY-ONLY-SECOND" ] || fail "⌘↩ 后剪贴板不是第二条: $(pbpaste)"
 [ "$DOC2" = "$DOC" ] || fail "⌘↩ 不应粘贴,但 TextEdit 内容变了"
 echo "OK cmd-return copies only"
