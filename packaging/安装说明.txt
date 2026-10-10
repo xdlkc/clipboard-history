@@ -9,9 +9,12 @@ ClipboardHistory 是常驻菜单栏的剪贴板历史工具,没有 Dock 图标�
 1. 把 ClipboardHistory.app 拖进「应用程序」(/Applications)文件夹。
    (DMG 里已经放好了「Applications」快捷方式,直接拖过去即可。)
 2. 本应用未经 Apple 公证。第一次打开时 macOS 会提示「无法验证开发者」或「Apple 无法检查其是否包含恶意软件」:
-   - 在「应用程序」里按住 Control 键点按 ClipboardHistory,选择「打开」,在弹出的对话框里再点「打开」;
-   - 或者先双击一次,然后打开「系统设置 › 隐私与安全性」,在页面下方找到 ClipboardHistory,点「仍要打开」。
+   a. 先在「应用程序」里双击 ClipboardHistory,出现提示后点「完成」(或「好」)关闭;
+   b. 打开「系统设置 › 隐私与安全性」,滚动到页面下方「安全性」一栏,找到「已阻止使用 ClipboardHistory」,点「仍要打开」;
+   c. 按提示输入登录密码(或使用触控 ID),在再次弹出的对话框里点「仍要打开」。
    这一步只需做一次。
+   注:macOS 15 起,按住 Control 键点按 › 打开 已不能绕过这个提示;
+   只有 macOS 13 / 14 还可以在「应用程序」里按住 Control 键点按 ClipboardHistory,选择「打开」,再点「打开」。
 3. 打开后,菜单栏右上角会出现剪贴板图标。
 
 

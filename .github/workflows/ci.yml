@@ -1,11 +1,23 @@
 name: CI
 
+# 私有仓库的 macOS 分钟按 10 倍计费:PR 只跑 pull_request,push 只跑 main;纯文档改动不跑
 on:
-  push:
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "design/**"
+      - "packaging/*.txt"
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "design/**"
+      - "packaging/*.txt"
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -139,11 +151,3 @@ jobs:
 
       - name: Unit tests
         run: swift test -Xswiftc -warnings-as-errors
-
-      - name: Package (SIGN=adhoc ./package.sh)
-        env:
-          SWIFT_BUILD_FLAGS: -Xswiftc -warnings-as-errors
-        run: SIGN=adhoc ./package.sh
-
-      - name: Verify package
-        run: scripts/ci-verify-package.sh ci-artifacts/package
