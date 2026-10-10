@@ -13,7 +13,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Toolchain
         run: |
@@ -51,7 +51,7 @@ jobs:
         run: echo "TODO(PR #5): SIGN=adhoc ./package.sh"
 
       - name: Upload universal binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ClipboardHistory-universal
           path: dist/ClipboardHistory
