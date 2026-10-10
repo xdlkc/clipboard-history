@@ -26,10 +26,10 @@ jobs:
 
       # 两种架构分别构建,产物在 .build/<triple>/release/,不依赖 .build/release 软链
       - name: Build release (arm64)
-        run: swift build -c release --arch arm64
+        run: swift build -c release --arch arm64 -Xswiftc -warnings-as-errors
 
       - name: Build release (x86_64)
-        run: swift build -c release --arch x86_64
+        run: swift build -c release --arch x86_64 -Xswiftc -warnings-as-errors
 
       - name: Universal binary (lipo)
         run: |
@@ -43,7 +43,7 @@ jobs:
           lipo dist/ClipboardHistory -verify_arch arm64 x86_64
 
       - name: Unit tests
-        run: swift test
+        run: swift test -Xswiftc -warnings-as-errors
 
       # 验收第 2 项:真实系统剪贴板 → history.db(文本 kind=0 / PNG kind=1 / 文件 URL kind=2)
       - name: Capture smoke test (real pasteboard)
@@ -52,6 +52,22 @@ jobs:
           if [ -e "$HOME/Library/Application Support/ClipboardHistory/history.db" ]; then
             echo "::error::smoke test touched the default history.db"; exit 1
           fi
+
+      # 验收 3(窗口几何)/ 4(多行文本搜索不崩)/ 5(方向键跨类型切换不崩),临时数据库
+      - name: Panel smoke test (geometry, search, arrows)
+        run: |
+          scripts/ci-panel-smoke.sh "$(swift build -c release --arch arm64 --show-bin-path)/ClipboardHistory" ci-artifacts/panel
+          if [ -e "$HOME/Library/Application Support/ClipboardHistory/history.db" ]; then
+            echo "::error::smoke test touched the default history.db"; exit 1
+          fi
+
+      - name: Upload panel screenshots
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: panel-smoke
+          path: ci-artifacts/panel
+          if-no-files-found: warn
 
       # TODO(PR #5): package.sh 尚不存在。届时在此执行 `SIGN=adhoc ./package.sh`(CI 一律 ad-hoc,不用自签证书),
       # 并把 dist/*.zip 与 dist/*.dmg 加入下方上传的构建包。
@@ -86,7 +102,7 @@ jobs:
           esac
 
       - name: Build release (arm64)
-        run: swift build -c release --arch arm64
+        run: swift build -c release --arch arm64 -Xswiftc -warnings-as-errors
 
       - name: Unit tests
-        run: swift test
+        run: swift test -Xswiftc -warnings-as-errors

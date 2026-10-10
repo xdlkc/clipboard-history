@@ -5,11 +5,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var store: Store?
     private var monitor: ClipboardMonitor?
+    private var panel: PanelController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
         startCapture()
+        setupPanel()
+        if CommandLine.arguments.contains("--show") {
+            panel?.show()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -28,6 +33,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             Log.debug("store unavailable: \(error)")
         }
+    }
+
+    private func setupPanel() {
+        guard let store else { return }
+        let panel = PanelController(store: store)
+        panel.onChoose = { [weak self] item, mode in
+            guard let self else { return }
+            self.panel?.hide()
+            guard self.monitor?.write(item) == true else { return }
+            if mode == .paste {
+                // TODO(PR #4): 120ms 后模拟 ⌘V(Keyboard.swift);未授权辅助功能时首次弹窗引导
+                Log.debug("paste requested id=\(item.id) (simulated ⌘V arrives in PR #4)")
+            }
+        }
+        self.panel = panel
     }
 
     private func setupStatusItem() {

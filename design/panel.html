@@ -1,0 +1,112 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1064px;height:454px;background:transparent;overflow:hidden}
+body{font-family:-apple-system,"SF Pro Text","Noto Sans","Noto Sans CJK SC",sans-serif;color:#ECECEE;-webkit-font-smoothing:antialiased}
+.panel{position:absolute;inset:0;border-radius:14px;overflow:hidden;
+ background:linear-gradient(180deg,rgba(44,44,50,.94),rgba(30,30,35,.95));
+ box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+.search{position:absolute;left:12px;right:12px;top:12px;height:52px;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;padding:0 16px;gap:12px}
+.search svg{flex:none}
+.q{font-size:24px;font-weight:400;letter-spacing:.2px}
+.caret{display:inline-block;width:2px;height:28px;background:#0A84FF;vertical-align:-5px;margin-left:2px}
+.cnt{margin-left:auto;font-size:12px;color:rgba(235,235,245,.45)}
+.list{position:absolute;left:12px;top:72px;width:452px;height:342px;overflow:hidden}
+.row{height:46px;display:flex;align-items:center;padding:0 10px;border-radius:8px;gap:10px}
+.row.sel{background:rgba(10,132,255,.55)}
+.ic{width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:5px;overflow:hidden}
+.tx{flex:1;min-width:0}
+.t{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:17px}
+.t b{background:#FFD60A;color:#000;font-weight:500;border-radius:2px;padding:0 .5px}
+.s{font-size:11px;color:rgba(235,235,245,.55);display:flex;align-items:center;gap:5px;line-height:15px;margin-top:2px;white-space:nowrap}
+.row.sel .s{color:rgba(255,255,255,.75)}
+.ai{width:14px;height:14px;border-radius:3.5px;flex:none}
+.dot{opacity:.6}
+.pin{flex:none}
+.divider{position:absolute;left:472px;top:72px;width:1px;height:342px;background:rgba(255,255,255,.08)}
+.pv{position:absolute;left:476px;top:72px;width:576px;height:342px}
+.ph{font-size:11px;color:rgba(235,235,245,.5);padding:4px 6px 8px;display:flex;gap:8px;align-items:center}
+.ph .k{color:rgba(235,235,245,.8);font-weight:500}
+.pb{height:310px;border-radius:8px;background:rgba(0,0,0,.22);padding:10px 12px;font-family:"SF Mono",Menlo,"Noto Sans Mono","Noto Sans Mono CJK SC",monospace;font-size:12px;line-height:17px;white-space:pre;overflow:hidden;color:#D8D8DC}
+
+.status{position:absolute;left:0;right:0;bottom:0;height:32px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;padding:0 18px;font-size:11px;color:rgba(235,235,245,.5);gap:16px;background:rgba(0,0,0,.12)}
+.status .n{color:rgba(235,235,245,.8);font-variant-numeric:tabular-nums}
+.kb{display:inline-flex;gap:5px;align-items:center}
+.kb kbd{font-family:inherit;font-size:10.5px;padding:1px 5px;border-radius:4px;background:rgba(255,255,255,.10);color:rgba(235,235,245,.8)}
+.sp{margin-left:auto}
+</style></head><body><div class="panel">
+<div class="search">
+ <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(235,235,245,.55)" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20"/></svg>
+ <span class="q">build</span><span class="caret"></span>
+ <span class="cnt">7 条匹配</span>
+</div>
+
+<div class="list">
+ <div class="row sel">
+  <div class="ic"><svg width="22" height="24" viewBox="0 0 22 24"><path d="M4 2h9l5 5v15H4z" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 2v5h5M7.5 12h7M7.5 15h7M7.5 18h4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></div>
+  <div class="tx"><div class="t">swift <b>build</b> -c release --arch arm64 ⏎ Building for production... ⏎ [1/9] Compiling</div>
+   <div class="s"><span class="ai" style="background:linear-gradient(#3a3a3c,#1c1c1e);box-shadow:inset 0 0 0 1px #555"></span>终端<span class="dot">·</span>2 分钟前<span class="dot">·</span>1,284 字符</div></div>
+ </div>
+ <div class="row">
+  <div class="ic"><svg width="22" height="24" viewBox="0 0 22 24"><path d="M4 2h9l5 5v15H4z" fill="none" stroke="rgba(235,235,245,.7)" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 2v5h5M7.5 12h7M7.5 15h7M7.5 18h4.5" stroke="rgba(235,235,245,.7)" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></div>
+  <div class="tx"><div class="t">./<b>build</b>.sh &amp;&amp; open build/ClipboardHistory.app</div>
+   <div class="s"><span class="ai" style="background:#111;box-shadow:inset 0 0 0 1px #666"></span>Cursor<span class="dot">·</span>15 分钟前<span class="dot">·</span>46 字符</div></div>
+  <svg class="pin" width="14" height="16" viewBox="0 0 14 16"><path d="M4 1h6l-1 5 3 3H2l3-3z" fill="#FFD60A"/><path d="M7 9v6" stroke="#FFD60A" stroke-width="1.6" stroke-linecap="round"/></svg>
+ </div>
+ <div class="row">
+  <div class="ic"><img width="28" height="28" style="border-radius:5px" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><rect width='28' height='28' fill='%23161b22'/><rect x='3' y='5' width='22' height='3' rx='1' fill='%233fb950'/><rect x='3' y='11' width='16' height='2' rx='1' fill='%238b949e'/><rect x='3' y='15' width='19' height='2' rx='1' fill='%238b949e'/><rect x='3' y='19' width='12' height='2' rx='1' fill='%23f85149'/></svg>"></div>
+  <div class="tx"><div class="t"><b>build</b>-status.png</div>
+   <div class="s"><span class="ai" style="background:linear-gradient(135deg,#6ac4ff,#1d7cf2)"></span>访达<span class="dot">·</span>38 分钟前<span class="dot">·</span>1 张图片</div></div>
+ </div>
+ <div class="row">
+  <div class="ic"><svg width="22" height="24" viewBox="0 0 22 24"><path d="M4 2h9l5 5v15H4z" fill="none" stroke="rgba(235,235,245,.7)" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 2v5h5M7.5 12h7M7.5 15h7M7.5 18h4.5" stroke="rgba(235,235,245,.7)" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></div>
+  <div class="tx"><div class="t"><b>Build</b> failed: NSRange out of bounds ⏎ at RowView.swift:88</div>
+   <div class="s"><span class="ai" style="background:linear-gradient(135deg,#e01e5a,#36c5f0)"></span>Slack<span class="dot">·</span>1 小时前<span class="dot">·</span>212 字符</div></div>
+ </div>
+ <div class="row">
+  <div class="ic"><svg width="26" height="22" viewBox="0 0 26 22"><path d="M2 4a2 2 0 0 1 2-2h6l2 2.5h10a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#5AC8FA" opacity=".9"/><path d="M2 8h22" stroke="#2a90c8" stroke-width="1"/></svg></div>
+  <div class="tx"><div class="t">Package.swift  <b>build</b>.sh  package.sh</div>
+   <div class="s"><span class="ai" style="background:linear-gradient(135deg,#6ac4ff,#1d7cf2)"></span>访达<span class="dot">·</span>昨天<span class="dot">·</span>3 个文件</div></div>
+ </div>
+ <div class="row">
+  <div class="ic"><svg width="22" height="24" viewBox="0 0 22 24"><path d="M4 2h9l5 5v15H4z" fill="none" stroke="rgba(235,235,245,.7)" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 2v5h5M7.5 12h7M7.5 15h7M7.5 18h4.5" stroke="rgba(235,235,245,.7)" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></div>
+  <div class="tx"><div class="t">github.com/xdlkc/clipboard-history/actions/workflows/<b>build</b>.yml</div>
+   <div class="s"><span class="ai" style="background:conic-gradient(#fff 0 25%,#1a8cff 0 50%,#fff 0 75%,#1a8cff 0)"></span>Safari<span class="dot">·</span>昨天<span class="dot">·</span>58 字符</div></div>
+ </div>
+ <div class="row">
+  <div class="ic"><svg width="22" height="24" viewBox="0 0 22 24"><path d="M4 2h9l5 5v15H4z" fill="none" stroke="rgba(235,235,245,.7)" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 2v5h5M7.5 12h7M7.5 15h7M7.5 18h4.5" stroke="rgba(235,235,245,.7)" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></div>
+  <div class="tx"><div class="t"><b>BUILD</b>_NUMBER=42 SIGN=adhoc ./package.sh</div>
+   <div class="s"><span class="ai" style="background:linear-gradient(#3a3a3c,#1c1c1e);box-shadow:inset 0 0 0 1px #555"></span>终端<span class="dot">·</span>3 天前<span class="dot">·</span>39 字符</div></div>
+ </div>
+</div>
+<div class="divider"></div>
+<div class="pv">
+ <div class="ph"><span class="k">文本</span><span>1,284 字符</span><span>·</span><span>终端</span><span>·</span><span>今天 17:44</span></div>
+<div class="pb">$ swift build -c release --arch arm64
+Building for production...
+[1/9] Compiling ClipboardHistory Fuzzy.swift
+[2/9] Compiling ClipboardHistory Store.swift
+[3/9] Compiling ClipboardHistory ClipboardMonitor.swift
+[4/9] Compiling ClipboardHistory PanelController.swift
+warning: 'NSBitmapImageRep(contentsOfFile:)' is unavailable
+[5/9] Compiling ClipboardHistory RowView.swift
+[6/9] Compiling ClipboardHistory Keyboard.swift
+[7/9] Emitting module ClipboardHistory
+[8/9] Linking ClipboardHistory
+Build complete! (14.82s)
+$ swift build -c release --arch x86_64
+Building for production...
+Build complete! (13.07s)
+$ lipo -create .build/arm64-apple-macosx/release/ClipboardHistory \
+    .build/x86_64-apple-macosx/release/ClipboardHistory \
+    -output build/ClipboardHistory</div>
+</div>
+<div class="status">
+ <span class="n">1 / 7</span>
+ <span class="kb"><kbd>↩</kbd>粘贴</span>
+ <span class="kb"><kbd>⌘↩</kbd>仅复制</span>
+ <span class="kb"><kbd>⌘⌫</kbd>删除</span>
+ <span class="kb"><kbd>⇧⌘P</kbd>固定</span>
+ <span class="kb"><kbd>esc</kbd>清空 / 关闭</span>
+ <span class="sp">⌘⌥C 唤出 / 隐藏</span>
+</div>
+</div></body></html>
