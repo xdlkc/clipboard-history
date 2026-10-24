@@ -83,3 +83,14 @@ GitHub Actions(macOS 运行器)只在 PR(pull_request)和推送到 main 时运�
 - macOS 15 任务(完整):两架构分别构建并 `lipo` 合成通用二进制、单元测试(全部开启 `-warnings-as-errors`)、剪贴板捕获 / 面板 / 热键 / 粘贴 / 菜单冒烟测试、`SIGN=adhoc ./package.sh` 并校验签名、zip、dmg 与 `lipo -info`。
 - macOS 26 SDK 任务(精简):`swift build -c release --arch arm64` 与 `swift test`。
 - 构建包:zip + dmg、图标预览、冒烟截图、通用二进制。
+
+## GitHub Release 包
+
+最低 macOS 13，Universal ZIP / DMG 均包含 arm64 与 x86_64。
+`Release packages` 在 PR、main、release/** 分支和手动运行时生成经过校验的 Actions 产物；
+两种原生运行器下载同一份包，校验 SHA256、架构、部署目标、签名与原生启动。
+推送与应用版本完全相同的 `v<major>.<minor>.<patch>` tag 后，所有检查通过才创建 **draft Release**。
+在 GitHub 审阅后手动发布；工作流不会自动对外发布正式版本，也不会合并 PR。
+下载 ZIP、DMG 和 SHA256SUMS 后，在同一目录运行 `shasum -a 256 -c SHA256SUMS`。
+当前分发包仅 ad-hoc 签名，没有 Developer ID 签名或 Apple 公证，可能出现 Gatekeeper 提示。
+CI 使用 macOS 15；最低系统由 plist 与每个 Mach-O 切片的部署目标检查，未替代 macOS 13 真机测试。

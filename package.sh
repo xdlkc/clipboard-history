@@ -24,6 +24,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
+bash scripts/check-release-version.sh
 log "package $NAME"
 SIGN=adhoc ./build.sh
 
@@ -48,13 +49,13 @@ done
 
 log "verify zip"
 ditto -x -k "$ZIP" "$VERIFY/zip"
-codesign --verify --strict --verbose=2 "$VERIFY/zip/$NAME/$APP_NAME.app"
+python3 scripts/verify-release-app.py "$VERIFY/zip/$NAME/$APP_NAME.app"
 
 log "verify dmg"
 MOUNT="$(mktemp -d /tmp/clipboard-history-dmg.XXXXXX)"
 hdiutil attach "$DMG" -readonly -nobrowse -mountpoint "$MOUNT" -quiet
 [ -L "$MOUNT/Applications" ] && [ -f "$MOUNT/$GUIDE" ] || { echo "dmg 内容不完整" >&2; exit 1; }
-codesign --verify --strict --verbose=2 "$MOUNT/$APP_NAME.app"
+python3 scripts/verify-release-app.py "$MOUNT/$APP_NAME.app"
 hdiutil detach "$MOUNT" -quiet
 rmdir "$MOUNT" 2>/dev/null || true
 MOUNT=""
@@ -63,5 +64,6 @@ cleanup
 trap - EXIT
 LEFT="$(find build dist -name '*.app' -prune 2>/dev/null || true)"
 [ -z "$LEFT" ] || { echo "残留中间 .app: $LEFT" >&2; exit 1; }
+(cd dist && shasum -a 256 "$NAME.zip" "$NAME.dmg" > SHA256SUMS)
 ls -l "$ZIP" "$DMG"
 log "done"
