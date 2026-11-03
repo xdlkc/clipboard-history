@@ -14,6 +14,17 @@
 
 设置环境变量 `CLIPBOARD_HISTORY_DB=<路径>` 可让应用改用指定的数据库文件,测试时不会碰到真实历史。
 
+## 全局快捷键
+
+菜单栏 →「设置全局快捷键…」可选择 A–Z / 0–9 键位以及 Command、Option、Control、Shift 组合；
+至少包含 Command、Option 或 Control 中的一个。键位按 ANSI 物理键位解释。
+默认是 ⌘⌥C，点击「恢复默认」会立即尝试恢复并保存；「取消」不修改配置。
+
+保存时先向系统注册，成功后立即更新菜单和面板提示，并通过 UserDefaults 的
+`globalHotkey` 配置在重启后恢复。注册失败（例如被其他应用占用）会提示错误并保留原快捷键；
+启动时若保存的快捷键不可用，仍可从菜单栏打开面板并重新设置。损坏或无效配置回退到默认值。
+`ClipboardCore.HotkeySettings` 提供加载、校验和保存接口，注册操作可注入以便单元测试。
+
 ## 开发与测试
 
 只需 Xcode Command Line Tools:

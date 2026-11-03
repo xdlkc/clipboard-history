@@ -7,6 +7,7 @@ final class HotkeyCenter {
 
     private let action: () -> Void
     private var hotKeyRef: EventHotKeyRef?
+    private var registeredConfig: HotkeyConfig?
     private var handlerRef: EventHandlerRef?
 
     init(action: @escaping () -> Void) {
@@ -20,7 +21,8 @@ final class HotkeyCenter {
 
     @discardableResult
     func register(_ config: HotkeyConfig) -> Bool {
-        unregister()
+        guard (try? config.validate()) != nil else { return false }
+        if registeredConfig == config, hotKeyRef != nil { return true }
         if handlerRef == nil {
             var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
             let status = InstallEventHandler(GetApplicationEventTarget(), { _, event, userData in
@@ -38,11 +40,15 @@ final class HotkeyCenter {
             }
         }
         let id = EventHotKeyID(signature: Self.signature, id: 1)
-        let status = RegisterEventHotKey(config.keyCode, config.modifiers.rawValue, id, GetApplicationEventTarget(), 0, &hotKeyRef)
+        var newRef: EventHotKeyRef?
+        let status = RegisterEventHotKey(config.keyCode, config.modifiers.rawValue, id, GetApplicationEventTarget(), 0, &newRef)
         guard status == noErr else {
             Log.debug("hotkey \(config.displayString) register failed: \(status)")
             return false
         }
+        unregister()
+        hotKeyRef = newRef
+        registeredConfig = config
         Log.debug("hotkey \(config.displayString) registered")
         return true
     }
@@ -50,6 +56,7 @@ final class HotkeyCenter {
     func unregister() {
         if let hotKeyRef { UnregisterEventHotKey(hotKeyRef) }
         hotKeyRef = nil
+        registeredConfig = nil
     }
 
     private func fire() {

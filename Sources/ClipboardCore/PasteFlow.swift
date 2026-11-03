@@ -1,8 +1,8 @@
 import Foundation
 
 /// 全局热键配置。键码与修饰键取值同 Carbon(`kVK_ANSI_C` = 8,`cmdKey` = 0x100,`optionKey` = 0x800)。
-public struct HotkeyConfig: Equatable, Sendable {
-    public struct Modifiers: OptionSet, Sendable {
+public struct HotkeyConfig: Equatable, Codable, Sendable {
+    public struct Modifiers: OptionSet, Codable, Sendable {
         public let rawValue: UInt32
         public init(rawValue: UInt32) { self.rawValue = rawValue }
 

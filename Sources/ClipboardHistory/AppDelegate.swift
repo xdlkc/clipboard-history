@@ -4,7 +4,8 @@ import ServiceManagement
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// 全局热键,默认 ⌘⌥C(外接 Windows 键盘时 Windows 键即 ⌘)。
-    private let hotkeyConfig = HotkeyConfig.default
+    private let hotkeySettings = HotkeySettings()
+    private var hotkeyConfig: HotkeyConfig { hotkeySettings.current }
 
     private var statusItem: NSStatusItem?
     private var loginItem: NSMenuItem?
@@ -62,6 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.onChoose = { [weak self] item, mode in
             self?.choose(item, mode: mode)
         }
+        panel.setHotkey(hotkeyConfig, registered: true)
         self.panel = panel
     }
 
@@ -82,8 +84,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// 热键被占用时:菜单项标出 ⚠️ 并去掉快捷键显示,启动时提示一次。
     private func applyHotkeyState(registered: Bool) {
         openPanelItem?.title = StatusMenu.openPanelTitle(hotkey: hotkeyConfig, registered: registered)
+        openPanelItem?.keyEquivalent = registered ? hotkeyConfig.key : ""
+        openPanelItem?.keyEquivalentModifierMask = hotkeyConfig.cocoaModifiers
+        panel?.setHotkey(hotkeyConfig, registered: registered)
         guard !registered else { return }
-        openPanelItem?.keyEquivalent = ""
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.runAlert(StatusMenu.hotkeyUnavailableAlert(self.hotkeyConfig))
@@ -124,7 +128,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 menuItem.action = #selector(openPanel)
                 openPanelItem = menuItem
                 menuItem.keyEquivalent = hotkeyConfig.key
-                menuItem.keyEquivalentModifierMask = [.command, .option]
+                menuItem.keyEquivalentModifierMask = hotkeyConfig.cocoaModifiers
+            case .configureHotkey:
+                menuItem.action = #selector(configureHotkey)
             case .launchAtLogin:
                 menuItem.action = #selector(toggleLaunchAtLogin)
                 loginItem = menuItem
@@ -148,6 +154,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case .on: loginItem?.state = .on
         case .off: loginItem?.state = .off
         case .mixed: loginItem?.state = .mixed
+        }
+    }
+
+    @objc private func configureHotkey() {
+        panel?.hide()
+        HotkeyEditor.run(current: hotkeyConfig) { [self] config in
+            try hotkeySettings.update(config) { hotkeys?.register($0) == true }
+            applyHotkeyState(registered: true)
         }
     }
 
