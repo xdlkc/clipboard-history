@@ -14,6 +14,24 @@
 
 设置环境变量 `CLIPBOARD_HISTORY_DB=<路径>` 可让应用改用指定的数据库文件,测试时不会碰到真实历史。
 
+## 开机自启动
+
+将应用安装到 `/Applications` 并运行,在菜单栏点击「登录自启」即可开启/关闭。
+这里的自启指当前用户登录 macOS 后启动应用;首次使用默认关闭(已有系统登录项会沿用)。
+勾选表示已启用,横线表示已注册但仍需系统批准;开启后需要批准时可直接打开系统设置。
+等待批准时再次点击菜单项可取消注册。
+
+`ClipboardCore.LaunchAtLoginController` 提供 `setEnabled(_:)`、`status`、`refresh()` 和
+`savedEnabled`,通过 `LaunchAtLoginService` 注入系统服务或测试替身。
+应用层使用 [SMAppService.mainApp](https://developer.apple.com/documentation/servicemanagement/smappservice/mainapp)
+管理登录项,系统保存实际注册关系;`UserDefaults` 的 `launchAtLoginEnabled` 保存最近同步的注册配置
+(包含待批准请求,不等同于实际已启用)。启动和打开菜单时同步系统状态,不会按旧配置自动重新注册,
+因此用户在系统设置中的修改会被尊重。注册/注销失败会提示错误,不会将失败请求保存为成功。
+单元测试使用独立偏好设置域和系统服务替身,不会修改真实登录项。
+
+手动验收:从 `/Applications` 打开应用 → 开启「登录自启」(若需要则批准) → 退出并重新登录,
+确认菜单栏应用启动;关闭后再次登录,确认不再启动。也可从系统设置撤销批准,重新打开菜单确认横线状态。
+
 ## 开发与测试
 
 只需 Xcode Command Line Tools:

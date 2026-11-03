@@ -42,12 +42,7 @@ public enum StatusMenu {
     // MARK: - 登录自启
 
     /// 对应 `SMAppService.Status`。
-    public enum LoginItemStatus: Sendable {
-        case notRegistered
-        case enabled
-        case requiresApproval
-        case notFound
-    }
+    public typealias LoginItemStatus = LaunchAtLoginStatus
 
     public enum CheckState: Equatable, Sendable {
         case on, off, mixed
@@ -81,6 +76,11 @@ public enum StatusMenu {
                   informative: "请先将 ClipboardHistory 安装到 /Applications(应用程序)文件夹,再从那里打开后重试。\n\n\(error)",
                   buttons: ["好"])
     }
+
+    public static let loginItemApprovalAlert = AlertText(
+        message: "登录自启需要批准",
+        informative: "请在系统设置的「登录项」中允许 ClipboardHistory。批准前,应用不会在登录时自动启动。",
+        buttons: ["打开系统设置", "稍后"])
 
     public static let clearUnpinnedAlert = AlertText(
         message: "清空未固定的历史?",
