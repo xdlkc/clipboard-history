@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var statusItem: NSStatusItem?
     private var loginItem: NSMenuItem?
+    private lazy var launchAtLogin = LaunchAtLoginController(service: SystemLaunchAtLoginService())
     private var openPanelItem: NSMenuItem?
     /// 最近激活的其他应用;唤出面板时前台可能是本应用(如刚关掉弹窗),粘贴要回到它。
     private var frontmost = FrontmostTracker<NSRunningApplication>()
@@ -141,10 +142,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         item.menu = menu
         statusItem = item
+        updateLoginItemState()
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        switch StatusMenu.checkState(for: Self.loginItemStatus) {
+        updateLoginItemState()
+    }
+
+    private func updateLoginItemState() {
+        switch StatusMenu.checkState(for: launchAtLogin.refresh()) {
         case .on: loginItem?.state = .on
         case .off: loginItem?.state = .off
         case .mixed: loginItem?.state = .mixed
@@ -159,24 +165,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Keyboard.openAccessibilitySettings()
     }
 
-    private static var loginItemStatus: StatusMenu.LoginItemStatus {
-        switch SMAppService.mainApp.status {
-        case .enabled: return .enabled
-        case .requiresApproval: return .requiresApproval
-        case .notFound: return .notFound
-        default: return .notRegistered
-        }
-    }
-
     @objc private func toggleLaunchAtLogin() {
-        let register = StatusMenu.shouldRegister(currentStatus: Self.loginItemStatus)
+        let register = StatusMenu.shouldRegister(currentStatus: launchAtLogin.status)
+        defer { updateLoginItemState() }
         do {
-            if register {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
+            try launchAtLogin.setEnabled(register)
+            Log.debug("launch at login register=\(register) status=\(launchAtLogin.status)")
+            if launchAtLogin.status == .requiresApproval,
+               runAlert(StatusMenu.loginItemApprovalAlert) == .alertFirstButtonReturn {
+                SMAppService.openSystemSettingsLoginItems()
             }
-            Log.debug("launch at login register=\(register) status=\(Self.loginItemStatus)")
         } catch {
             Log.debug("launch at login failed: \(error)")
             runAlert(StatusMenu.loginItemFailedAlert(register: register, error: error.localizedDescription))
