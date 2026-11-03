@@ -143,6 +143,82 @@ final class PanelModelTests: XCTestCase {
         XCTAssertEqual(model.selectedIndex, 0)
     }
 
+    func testTypeFiltersPartitionHistoryAndPreserveOrder() {
+        var model = PanelModel()
+        let items = [item(1, "hello", pinned: true), item(2, "https://example.com"),
+                     item(3, "100×100", kind: .image), item(4, "/tmp/hello.txt", kind: .file),
+                     item(5, "world")]
+        model.setItems(items)
+        let expected: [(HistoryFilter, [Int64])] = [
+            (.text, [1, 5]), (.link, [2]), (.image, [3]), (.file, [4]), (.all, [1, 2, 3, 4, 5]),
+        ]
+        for (filter, ids) in expected {
+            model.setFilter(filter)
+            XCTAssertEqual(model.rows.map(\.item.id), ids)
+            XCTAssertEqual(model.selectedIndex, 0)
+        }
+        XCTAssertEqual(model.items, items)
+    }
+
+    func testLinkClassificationBoundaries() {
+        let links = ["https://example.com", " HTTP://example.com/path?q=1#part\n",
+                     "https://例子.测试/路径", "http://localhost:8080", "https://example.com/a%20b"]
+        let texts = ["", " ", "example.com", "www.example.com", "https://", "https:///path",
+                     "See https://example.com", "https://a.com https://b.com",
+                     "https://a.com\nhttps://b.com", "https://example.com/a b",
+                     "mailto:hello@example.com", "file:///tmp/a", "ftp://example.com"]
+        for value in links + texts {
+            let entry = item(1, value)
+            XCTAssertEqual(HistoryFilter.link.includes(entry), links.contains(value), value)
+            XCTAssertEqual(HistoryFilter.text.includes(entry), texts.contains(value), value)
+        }
+        for kind in [ItemKind.image, .file] {
+            XCTAssertFalse(HistoryFilter.link.includes(item(1, "https://example.com", kind: kind)))
+        }
+    }
+
+    func testFilterCombinesWithSearchAndHandlesEmptySelection() {
+        var model = PanelModel()
+        model.setItems([item(1, "example"), item(2, "https://example.com"), item(3, "https://other.com")])
+        model.setQuery("example")
+        model.setFilter(.link)
+        XCTAssertEqual(model.query, "example")
+        XCTAssertEqual(model.rows.map(\.item.id), [2])
+        XCTAssertFalse(model.rows[0].match.ranges.isEmpty)
+        model.setFilter(.image)
+        XCTAssertNil(model.selectedRow)
+        model.moveSelection(by: 1)
+        XCTAssertNil(model.selectedIndex)
+        model.setFilter(.link)
+        XCTAssertEqual(model.selectedRow?.item.id, 2)
+        XCTAssertEqual(model.escape(), .clearedQuery)
+        XCTAssertEqual(model.filter, .link)
+        XCTAssertEqual(model.rows.map(\.item.id), [2, 3])
+        XCTAssertEqual(model.escape(), .hide)
+        model.reset()
+        XCTAssertEqual(model.filter, .all)
+        XCTAssertEqual(model.rows.count, 3)
+    }
+
+    func testRefreshAndDeletionRespectFilterAndSelection() {
+        var model = PanelModel()
+        let first = item(1, "https://first.com")
+        let second = item(2, "https://second.com")
+        model.setFilter(.link)
+        model.setItems([first, second])
+        model.select(1)
+        model.setFilter(.link)
+        XCTAssertEqual(model.selectedRow?.item.id, 2)
+        model.setItems([item(3, "new text"), first, second])
+        XCTAssertEqual(model.filter, .link)
+        XCTAssertEqual(model.selectedRow?.item.id, 2)
+        model.setItems([item(3, "new text"), first])
+        XCTAssertEqual(model.selectedRow?.item.id, 1)
+        model.setItems([item(3, "new text")])
+        XCTAssertTrue(model.rows.isEmpty)
+        XCTAssertNil(model.selectedIndex)
+    }
+
     /// 坑 1 回归:多行终端输出在面板管线中搜索 + 上下切换 + 标题高亮转换,全程不越界。
     func testMultilineSearchAndArrowStepsProduceSafeHighlights() throws {
         var model = PanelModel()
