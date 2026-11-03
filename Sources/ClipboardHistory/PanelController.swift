@@ -30,6 +30,8 @@ final class PanelController: NSObject {
     private let tableView = NSTableView()
     private let preview = PreviewView()
     private let counterField = NSTextField(labelWithString: "")
+    private let hotkeyField = NSTextField(labelWithString: PanelFormat.hotkeyHint)
+    private var statusStack: NSStackView?
     private var mouseMonitor: Any?
     private var renderNow = Date()
     /// 输入防抖:最后一次输入 50ms 后才过滤;方向键 / 回车 / ESC 等操作前会立即执行待处理的过滤。
@@ -337,7 +339,9 @@ final class PanelController: NSObject {
             pair.spacing = 5
             views.append(pair)
         }
-        let hotkey = Self.statusLabel(PanelFormat.hotkeyHint)
+        let hotkey = hotkeyField
+        hotkey.font = .systemFont(ofSize: 11)
+        hotkey.textColor = Theme.textTertiary
         hotkey.sizeToFit()
         hotkey.frame.origin = NSPoint(x: width - 18 - hotkey.frame.width, y: ((31 - hotkey.frame.height) / 2).rounded())
         bar.addSubview(hotkey)
@@ -349,7 +353,17 @@ final class PanelController: NSObject {
         stack.alignment = .centerY
         stack.frame = NSRect(x: 18, y: 0, width: hotkey.frame.minX - 16 - 18, height: 31)
         bar.addSubview(stack)
+        statusStack = stack
         return bar
+    }
+
+    func setHotkey(_ config: HotkeyConfig, registered: Bool) {
+        hotkeyField.stringValue = registered ? "\(config.displayString) 唤出 / 隐藏" : "\(config.displayString) 不可用"
+        hotkeyField.sizeToFit()
+        guard let bar = hotkeyField.superview else { return }
+        hotkeyField.frame.origin = NSPoint(x: bar.bounds.width - 18 - hotkeyField.frame.width,
+                                          y: ((31 - hotkeyField.frame.height) / 2).rounded())
+        statusStack?.frame.size.width = hotkeyField.frame.minX - 34
     }
 
     private static func statusLabel(_ text: String) -> NSTextField {

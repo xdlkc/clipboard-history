@@ -4,7 +4,7 @@ import XCTest
 final class StatusMenuTests: XCTestCase {
     func testLayoutAndTitles() {
         XCTAssertEqual(StatusMenu.layout.map { $0?.title ?? "-" },
-                       ["打开面板", "-", "登录自启", "辅助功能设置", "-", "清空未固定历史…", "-", "退出"])
+                       ["打开面板", "设置全局快捷键…", "-", "登录自启", "辅助功能设置", "-", "清空未固定历史…", "-", "退出"])
     }
 
     func testAccessibilityDeepLink() {

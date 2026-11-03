@@ -4,6 +4,7 @@ import Foundation
 public enum StatusMenu {
     public enum Item: Equatable, Sendable {
         case openPanel
+        case configureHotkey
         case launchAtLogin
         case accessibilitySettings
         case clearUnpinned
@@ -12,6 +13,7 @@ public enum StatusMenu {
         public var title: String {
             switch self {
             case .openPanel: return "打开面板"
+            case .configureHotkey: return "设置全局快捷键…"
             case .launchAtLogin: return "登录自启"
             case .accessibilitySettings: return "辅助功能设置"
             case .clearUnpinned: return "清空未固定历史…"
@@ -21,7 +23,7 @@ public enum StatusMenu {
     }
 
     /// 菜单项顺序,nil 为分隔线。
-    public static let layout: [Item?] = [.openPanel, nil, .launchAtLogin, .accessibilitySettings, nil, .clearUnpinned, nil, .quit]
+    public static let layout: [Item?] = [.openPanel, .configureHotkey, nil, .launchAtLogin, .accessibilitySettings, nil, .clearUnpinned, nil, .quit]
 
     /// 系统设置 › 隐私与安全性 › 辅助功能
     public static let accessibilitySettingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
@@ -35,7 +37,7 @@ public enum StatusMenu {
 
     public static func hotkeyUnavailableAlert(_ hotkey: HotkeyConfig) -> AlertText {
         AlertText(message: "全局快捷键 \(hotkey.displayString) 不可用",
-                  informative: "这个快捷键可能已被其他应用占用。请在占用它的应用里改掉该快捷键后重新打开 ClipboardHistory;在此之前可以从菜单栏图标「打开面板」。",
+                  informative: "这个快捷键可能已被其他应用占用。请从菜单栏「设置全局快捷键…」选择其他组合;在此之前可以从菜单栏图标「打开面板」。",
                   buttons: ["好"])
     }
 
