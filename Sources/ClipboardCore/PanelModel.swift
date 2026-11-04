@@ -16,6 +16,7 @@ public struct PanelModel {
 
     public private(set) var items: [HistoryItem] = []
     public private(set) var query = ""
+    public private(set) var filter: HistoryFilter = .all
     public private(set) var rows: [Row] = []
     public private(set) var selectedIndex: Int?
 
@@ -52,6 +53,14 @@ public struct PanelModel {
         selectedIndex = clamp(0)
     }
 
+    /// 修改类型筛选:保留查询,选中第一项。
+    public mutating func setFilter(_ newFilter: HistoryFilter) {
+        guard newFilter != filter else { return }
+        filter = newFilter
+        refilter()
+        selectedIndex = clamp(0)
+    }
+
     /// 上下移动选中项,到两端停住。
     public mutating func moveSelection(by delta: Int) {
         guard !rows.isEmpty else {
@@ -72,16 +81,17 @@ public struct PanelModel {
         return .clearedQuery
     }
 
-    /// 面板重新唤出时调用:清空查询并选中第一项。
+    /// 面板重新唤出时调用:清空查询和类型筛选并选中第一项。
     public mutating func reset() {
         query = ""
+        filter = .all
         refilter()
         selectedIndex = clamp(0)
     }
 
     private mutating func refilter() {
         let cache = rowTextCache
-        rows = Fuzzy.rank(query, items) { cache[$0.id] ?? $0.rowText }.map { Row(item: $0.item, match: $0.match) }
+        rows = Fuzzy.rank(query, items.filter { filter.includes($0) }) { cache[$0.id] ?? $0.rowText }.map { Row(item: $0.item, match: $0.match) }
     }
 
     private func clamp(_ index: Int) -> Int? {

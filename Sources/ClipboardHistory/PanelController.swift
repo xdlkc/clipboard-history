@@ -26,6 +26,7 @@ final class PanelController: NSObject {
     private var model = PanelModel()
     private let panel: KeyPanel
     private let searchField = NSTextField()
+    private let filterButton = NSPopUpButton(frame: .zero, pullsDown: false)
     private let countField = NSTextField(labelWithString: "")
     private let tableView = NSTableView()
     private let preview = PreviewView()
@@ -138,6 +139,7 @@ final class PanelController: NSObject {
         } else {
             tableView.deselectAll(nil)
         }
+        filterButton.selectItem(at: HistoryFilter.allCases.firstIndex(of: model.filter) ?? 0)
         countField.stringValue = PanelFormat.searchCount(query: model.query, results: model.rows.count)
         counterField.stringValue = PanelFormat.statusCounter(selectedIndex: model.selectedIndex, total: model.rows.count,
                                                             accessibilityTrusted: isAccessibilityTrusted())
@@ -179,6 +181,16 @@ final class PanelController: NSObject {
     private func togglePinSelected() {
         guard let item = model.selectedRow?.item else { return }
         do { try store.togglePin(id: item.id) } catch { Log.debug("pin failed: \(error)") }
+    }
+
+    @objc private func filterChanged() {
+        let index = filterButton.indexOfSelectedItem
+        flushPendingQuery()
+        guard HistoryFilter.allCases.indices.contains(index) else { return }
+        model.setFilter(HistoryFilter.allCases[index])
+        tableView.reloadData()
+        syncSelection()
+        panel.makeFirstResponder(searchField)
     }
 
     @objc private func rowClicked() {
@@ -262,10 +274,18 @@ final class PanelController: NSObject {
         magnifier.contentTintColor = Theme.textSecondary
         searchBox.addSubview(magnifier)
 
+        filterButton.frame = NSRect(x: searchBox.frame.width - 116, y: 12, width: 100, height: 28)
+        filterButton.addItems(withTitles: HistoryFilter.allCases.map(\.title))
+        filterButton.target = self
+        filterButton.action = #selector(filterChanged)
+        filterButton.setAccessibilityLabel("内容类型")
+        filterButton.toolTip = "按内容类型筛选历史记录"
+        searchBox.addSubview(filterButton)
+
         countField.font = .systemFont(ofSize: 12)
         countField.textColor = Theme.textCount
         countField.alignment = .right
-        countField.frame = NSRect(x: searchBox.frame.width - 16 - 140, y: 17, width: 140, height: 16)
+        countField.frame = NSRect(x: filterButton.frame.minX - 12 - 140, y: 17, width: 140, height: 16)
         searchBox.addSubview(countField)
 
         searchField.frame = NSRect(x: 50, y: 10, width: countField.frame.minX - 12 - 50, height: 32)
