@@ -1,14 +1,26 @@
-# ClipboardHistory
+# Vestige（余痕）
 
-原生 macOS 菜单栏剪贴板历史工具(Swift + AppKit,纯 Swift Package Manager,最低 macOS 13)。常驻菜单栏、没有 Dock 图标,按 ⌘⌥C 唤出面板,可以模糊搜索,按 ↩ 粘贴到当前应用。
+> 复制过的每一段文字、图片与文件,都会留下可随时召回的余痕。
 
-在搜索框右侧选择「全部 / 文本 / 链接 / 图片 / 文件」可按类型筛选,并可同时输入关键词搜索。
+**Vestige（余痕）** 是一款原生 macOS 菜单栏剪贴板历史与瞬时回溯工具(Swift + AppKit,纯 Swift Package Manager,最低 macOS 13)。它常驻菜单栏、没有 Dock 图标,按下全局快捷键 `⌘⌥C` 即可唤出面板,把刚刚复制过的内容瞬间召回;支持模糊搜索、按类型筛选,按 `↩` 直接粘贴到当前应用。
+
+「Vestige」取意于痕迹的残留:剪贴板本是瞬时的,复制一次就覆盖一次。Vestige 让这些易逝的内容留下余痕——你无需刻意收藏,回溯时它们仍在那里。
+
+## 核心特性
+
+- **菜单栏常驻,随时唤出**:无 Dock 图标,`LSUIElement` 形态,不占桌面空间。
+- **全局快捷键回溯**:默认 `⌘⌥C`,可在「设置全局快捷键…」中自定义键位与修饰键,配置持久化并在重启后恢复。
+- **多类型筛选**:面板搜索框右侧可选择「全部 / 文本 / 链接 / 图片 / 文件」,与关键词搜索可同时生效。
+  切换类型时保留搜索词并选中首条结果;历史更新时保留当前筛选;重新唤出面板恢复全部类型并清空搜索。
+- **模糊搜索**:输入即匹配,快速定位历史条目。
+- **回车直贴**:选中后按 `↩` 模拟 `⌘V` 粘贴到当前应用,无需鼠标。
+- **本地持久化**:历史存入 SQLite,内容按 SHA256 去重;可用环境变量隔离数据文件。
+
 「链接」指去掉首尾空白后的单个完整 HTTP(S) 地址;含链接的段落、多个地址和其他协议仍归入「文本」。
-切换类型保留搜索词并选中首条结果;历史更新时保留当前筛选;重新唤出面板恢复全部类型并清空搜索。
 
 ## 结构
 
-- `Sources/ClipboardCore`:纯逻辑库(不依赖 AppKit):`Fuzzy`、`rowText`、`Store`(SQLite)、内容 SHA256、面板 / 粘贴 / 菜单逻辑
+- `Sources/ClipboardCore`:纯逻辑库(不依赖 AppKit):`Fuzzy`、`rowText`、`Store`(SQLite)、内容 SHA256、`HistoryFilter`(类型筛选)、面板 / 粘贴 / 菜单逻辑
 - `Sources/ClipboardCapture`:剪贴板读取 / 写回与缩略图(依赖 AppKit,不含 UI)
 - `Sources/ClipboardHistory`:AppKit 外壳(菜单栏、面板、Carbon 热键、模拟 ⌘V)
 - `Tests/`:XCTest 单元测试;`scripts/ci-*.sh`:CI 中的冒烟测试(仅在 `CI=true` 时运行,使用临时数据库)
@@ -17,6 +29,8 @@
 - `build.sh` / `package.sh` / `make-icon.swift`:构建、分发打包、生成图标;`packaging/安装说明.txt`:随包附带的说明
 
 设置环境变量 `CLIPBOARD_HISTORY_DB=<路径>` 可让应用改用指定的数据库文件,测试时不会碰到真实历史。
+
+> 品牌名称为 Vestige（余痕）,代码目录与构建产物仍沿用 `ClipboardHistory` 技术路径(`ClipboardHistory.app` 等),以保持与实际代码一致。
 
 ## 全局快捷键
 
@@ -50,7 +64,7 @@ SIGN=adhoc ./build.sh      # 强制 ad-hoc
 
 两架构分别构建 → `lipo` 合成通用二进制 → 由 `assets/icon-1024.png` 生成 `AppIcon.icns`(不入库,每次构建重新生成)→ 组装 `build/ClipboardHistory.app` → `codesign`。
 
-装到本机:先退出正在运行的 ClipboardHistory,再把 `build/ClipboardHistory.app` 拷到 `/Applications`(替换旧版本)。
+装到本机:先退出正在运行的 Vestige,再把 `build/ClipboardHistory.app` 拷到 `/Applications`(替换旧版本)。
 
 ### 自签名证书(让替换后的新版本保留辅助功能授权)
 
